@@ -1,0 +1,278 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\BusinessLocation;
+use App\InventoryRequest;
+use App\InventoryRequestLine;
+use App\Product;
+use App\Variation;
+use App\Utils\ModuleUtil;
+use App\Utils\ProductUtil;
+use App\Utils\TransactionUtil;
+use Illuminate\Http\Request;
+use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\DB;
+use App\Transaction;
+
+class InventoryRequestController extends Controller
+{
+    protected $productUtil;
+    protected $transactionUtil;
+    protected $moduleUtil;
+
+    public function __construct(ProductUtil $productUtil, TransactionUtil $transactionUtil, ModuleUtil $moduleUtil)
+    {
+        $this->productUtil = $productUtil;
+        $this->transactionUtil = $transactionUtil;
+        $this->moduleUtil = $moduleUtil;
+    }
+
+    public function index()
+    {
+        if (!auth()->user()->can('purchase.view') && !auth()->user()->can('purchase.create')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = request()->session()->get('user.business_id');
+
+        if (request()->ajax()) {
+            $inventory_requests = InventoryRequest::where('inventory_requests.business_id', $business_id)
+                ->join('business_locations as sl', 'inventory_requests.source_location_id', '=', 'sl.id')
+                ->join('business_locations as dl', 'inventory_requests.destination_location_id', '=', 'dl.id')
+                ->join('users as u', 'inventory_requests.requested_by', '=', 'u.id')
+                ->select([
+                    'inventory_requests.id',
+                    'inventory_requests.request_number',
+                    'sl.name as source_location',
+                    'dl.name as destination_location',
+                    'inventory_requests.status',
+                    'inventory_requests.created_at',
+                    DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as requested_by")
+                ]);
+
+            return Datatables::of($inventory_requests)
+                ->addColumn('action', function ($row) {
+                    $html = '<div class="btn-group">
+                            <button type="button" class="btn btn-info dropdown-toggle btn-xs" 
+                                data-toggle="dropdown" aria-expanded="false">' .
+                                __("messages.actions") .
+                                '<span class="caret"></span><span class="sr-only">Toggle Dropdown
+                                </span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-right" role="menu">
+                                <li><a href="' . route('inventory-requests.show', [$row->id]) . '"><i class="fas fa-eye" aria-hidden="true"></i> ' . __("messages.view") . '</a></li>';
+                    
+                    if ($row->status == 'Pending Approval') {
+                        $html .= '<li><a href="' . route('inventory-requests.edit', [$row->id]) . '"><i class="fas fa-check-circle"></i> Approve / Reject</a></li>';
+                    }
+
+                    if (in_array($row->status, ['Approved', 'Partially Approved'])) {
+                        $html .= '<li><a href="#" class="accept-request" data-href="' . route('inventory-requests.accept', [$row->id]) . '"><i class="fas fa-check"></i> Accept Stock</a></li>';
+                    }
+
+                    $html .= '</ul></div>';
+                    return $html;
+                })
+                ->editColumn('status', function ($row) {
+                    $badges = [
+                        'Pending Approval' => 'bg-yellow',
+                        'Approved' => 'bg-green',
+                        'Partially Approved' => 'bg-light-blue',
+                        'Rejected' => 'bg-red',
+                        'Accepted' => 'bg-green',
+                        'Completed' => 'bg-green'
+                    ];
+                    $bg = $badges[$row->status] ?? 'bg-gray';
+                    return '<span class="label ' . $bg . '">' . $row->status . '</span>';
+                })
+                ->editColumn('created_at', '{{@format_datetime($created_at)}}')
+                ->rawColumns(['action', 'status'])
+                ->make(true);
+        }
+
+        return view('inventory_requests.index');
+    }
+
+    public function create()
+    {
+        $business_id = request()->session()->get('user.business_id');
+        $business_locations = BusinessLocation::forDropdown($business_id, false, true);
+
+        return view('inventory_requests.create', compact('business_locations'));
+    }
+
+    public function store(Request $request)
+    {
+        try {
+            $business_id = $request->session()->get('user.business_id');
+
+            DB::beginTransaction();
+
+            $inventoryRequest = InventoryRequest::create([
+                'business_id' => $business_id,
+                'request_number' => 'REQ-' . time(),
+                'source_location_id' => $request->input('source_location_id'),
+                'destination_location_id' => $request->input('destination_location_id'),
+                'requested_by' => auth()->user()->id,
+                'status' => 'Pending Approval',
+                'notes' => $request->input('notes'),
+            ]);
+
+            $products = $request->input('products');
+            foreach ($products as $product) {
+                if (!empty($product['quantity'])) {
+                    InventoryRequestLine::create([
+                        'inventory_request_id' => $inventoryRequest->id,
+                        'product_id' => $product['product_id'],
+                        'variation_id' => $product['variation_id'],
+                        'quantity_requested' => $product['quantity'],
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            $output = ['success' => 1, 'msg' => __('Inventory request created successfully')];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
+            $output = ['success' => 0, 'msg' => __('messages.something_went_wrong')];
+        }
+
+        return redirect('inventory-requests')->with('status', $output);
+    }
+
+    public function show($id)
+    {
+        $inventoryRequest = InventoryRequest::with(['lines.product', 'lines.variation', 'sourceLocation', 'destinationLocation', 'requestedBy'])->findOrFail($id);
+        return view('inventory_requests.show', compact('inventoryRequest'));
+    }
+
+    public function edit($id)
+    {
+        $inventoryRequest = InventoryRequest::with(['lines.product', 'lines.variation'])->findOrFail($id);
+        return view('inventory_requests.edit', compact('inventoryRequest'));
+    }
+
+    public function approve(Request $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+            $inventoryRequest = InventoryRequest::findOrFail($id);
+            
+            $approved_lines = $request->input('approved_lines');
+            $status = $request->input('status'); // 'Approved', 'Partially Approved', 'Rejected'
+            
+            if ($status != 'Rejected') {
+                foreach ($approved_lines as $line_id => $qty) {
+                    InventoryRequestLine::where('id', $line_id)
+                        ->update(['quantity_approved' => $qty]);
+                }
+            }
+
+            $inventoryRequest->status = $status;
+            $inventoryRequest->approved_by = auth()->user()->id;
+            $inventoryRequest->save();
+
+            DB::commit();
+            $output = ['success' => 1, 'msg' => __('Inventory request processed successfully')];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
+            $output = ['success' => 0, 'msg' => __('messages.something_went_wrong')];
+        }
+        return redirect('inventory-requests')->with('status', $output);
+    }
+
+    public function accept(Request $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+            $inventoryRequest = InventoryRequest::with(['lines'])->findOrFail($id);
+            $business_id = $inventoryRequest->business_id;
+
+            // Mark as accepted
+            $inventoryRequest->status = 'Completed';
+            $inventoryRequest->accepted_by = auth()->user()->id;
+            $inventoryRequest->save();
+
+            // Create transactions to deduct stock from source and add to destination
+            $transaction_data = [
+                'business_id' => $business_id,
+                'location_id' => $inventoryRequest->source_location_id,
+                'type' => 'sell_transfer',
+                'status' => 'final',
+                'payment_status' => 'paid',
+                'created_by' => auth()->user()->id,
+                'transaction_date' => \Carbon::now(),
+                'ref_no' => 'REQ-TR-' . $inventoryRequest->id,
+                'total_before_tax' => 0,
+                'final_total' => 0,
+            ];
+            
+            $sell_transfer = Transaction::create($transaction_data);
+            
+            $purchase_transfer_data = $transaction_data;
+            $purchase_transfer_data['location_id'] = $inventoryRequest->destination_location_id;
+            $purchase_transfer_data['type'] = 'purchase_transfer';
+            $purchase_transfer_data['transfer_parent_id'] = $sell_transfer->id;
+            
+            $purchase_transfer = Transaction::create($purchase_transfer_data);
+
+            $sell_lines = [];
+            $purchase_lines = [];
+            foreach ($inventoryRequest->lines as $line) {
+                $line->quantity_received = $line->quantity_approved;
+                $line->save();
+
+                if ($line->quantity_approved > 0) {
+                    $sell_lines[] = [
+                        'product_id' => $line->product_id,
+                        'variation_id' => $line->variation_id,
+                        'quantity' => $line->quantity_approved,
+                        'unit_price' => 0,
+                        'unit_price_inc_tax' => 0,
+                        'item_tax' => 0,
+                    ];
+                    $purchase_lines[] = [
+                        'product_id' => $line->product_id,
+                        'variation_id' => $line->variation_id,
+                        'quantity' => $line->quantity_approved,
+                        'purchase_price' => 0,
+                        'purchase_price_inc_tax' => 0,
+                        'item_tax' => 0,
+                    ];
+                    
+                    // Decrease stock from source
+                    $this->productUtil->decreaseProductQuantity(
+                        $line->product_id,
+                        $line->variation_id,
+                        $inventoryRequest->source_location_id,
+                        $line->quantity_approved
+                    );
+                    
+                    // Increase stock to destination
+                    $this->productUtil->updateProductQuantity(
+                        $inventoryRequest->destination_location_id,
+                        $line->product_id,
+                        $line->variation_id,
+                        $line->quantity_approved
+                    );
+                }
+            }
+
+            if (count($sell_lines) > 0) {
+                $sell_transfer->sell_lines()->createMany($sell_lines);
+                $purchase_transfer->purchase_lines()->createMany($purchase_lines);
+            }
+
+            DB::commit();
+            return ['success' => 1, 'msg' => __('Stock accepted and transferred successfully')];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
+            return ['success' => 0, 'msg' => __('messages.something_went_wrong')];
+        }
+    }
+}

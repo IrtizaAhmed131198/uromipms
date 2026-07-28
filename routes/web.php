@@ -51,6 +51,7 @@ use App\Http\Controllers\SellPosController;
 use App\Http\Controllers\SellReturnController;
 use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\InventoryRequestController;
 use App\Http\Controllers\TaxonomyController;
 use App\Http\Controllers\TaxRateController;
 use App\Http\Controllers\TransactionPaymentController;
@@ -142,6 +143,14 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/user/update-password', [UserController::class, 'updatePassword'])->name('user.updatePassword');
 
     Route::resource('brands', BrandController::class);
+
+    Route::get('/install', function () {
+        return view('pwa.install');
+    })->name('pwa.install');
+
+    Route::resource('inventory-requests', InventoryRequestController::class);
+    Route::post('inventory-requests/{id}/approve', [InventoryRequestController::class, 'approve'])->name('inventory-requests.approve');
+    Route::post('inventory-requests/{id}/accept', [InventoryRequestController::class, 'accept'])->name('inventory-requests.accept');
 
     Route::resource('payment-account', 'PaymentAccountController');
 

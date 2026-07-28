@@ -275,6 +275,13 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->segment(1) == 'purchases' && request()->segment(2) == 'create']
                             );
                         }
+                        if (auth()->user()->can('purchase.view') || auth()->user()->can('purchase.create')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\InventoryRequestController::class, 'index']),
+                                __('Inventory Requests'),
+                                ['icon' => '', 'active' => request()->segment(1) == 'inventory-requests']
+                            );
+                        }
                         if (auth()->user()->can('purchase.update')) {
                             $sub->url(
                                 action([\App\Http\Controllers\PurchaseReturnController::class, 'index']),
