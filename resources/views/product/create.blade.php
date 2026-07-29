@@ -39,6 +39,14 @@
         </div>
         <div class="col-sm-4">
             <div class="form-group">
+                {!! Form::label('barcode', __('product.barcode') . ':') !!} @show_tooltip(__('Enter barcode value for this product. If left empty, SKU will be used as barcode. This is the value your barcode scanner will read.'))
+                {!! Form::text('barcode', (!empty($duplicate_product) && !empty($duplicate_product->variations) && $duplicate_product->variations->count() > 0) ? $duplicate_product->variations->first()->sub_sku : null, ['class' => 'form-control',
+                'placeholder' => __('Scan or type barcode'), 'id' => 'barcode']); !!}
+            </div>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="form-group">
                 {!! Form::label('barcode_type', __('product.barcode_type') . ':*') !!}
                 {!! Form::select('barcode_type', $barcode_types, !empty($duplicate_product->barcode_type) ? $duplicate_product->barcode_type : $barcode_default, ['class' => 'form-control select2', 'required']); !!}
             </div>

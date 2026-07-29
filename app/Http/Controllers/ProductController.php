@@ -546,7 +546,8 @@ class ProductController extends Controller
             }
 
             if ($product->type == 'single') {
-                $this->productUtil->createSingleProductVariation($product->id, $product->sku, $request->input('single_dpp'), $request->input('single_dpp_inc_tax'), $request->input('profit_percent'), $request->input('single_dsp'), $request->input('single_dsp_inc_tax'));
+                $barcode_value = !empty($request->input('barcode')) ? $request->input('barcode') : $product->sku;
+                $this->productUtil->createSingleProductVariation($product->id, $barcode_value, $request->input('single_dpp'), $request->input('single_dpp_inc_tax'), $request->input('profit_percent'), $request->input('single_dsp'), $request->input('single_dsp_inc_tax'));
             } elseif ($product->type == 'variable') {
                 if (!empty($request->input('product_variation'))) {
                     $input_variations = $request->input('product_variation');
@@ -872,7 +873,7 @@ class ProductController extends Controller
                 $single_data = $request->only(['single_variation_id', 'single_dpp', 'single_dpp_inc_tax', 'single_dsp_inc_tax', 'profit_percent', 'single_dsp']);
                 $variation = Variation::find($single_data['single_variation_id']);
 
-                $variation->sub_sku = $product->sku;
+                $variation->sub_sku = !empty($request->input('barcode')) ? $request->input('barcode') : $product->sku;
                 $variation->default_purchase_price = $this->productUtil->num_uf($single_data['single_dpp']);
                 $variation->dpp_inc_tax = $this->productUtil->num_uf($single_data['single_dpp_inc_tax']);
                 $variation->profit_percent = $this->productUtil->num_uf($single_data['profit_percent']);
