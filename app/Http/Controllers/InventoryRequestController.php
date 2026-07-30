@@ -143,6 +143,47 @@ class InventoryRequestController extends Controller
         return redirect('inventory-requests')->with('status', $output);
     }
 
+    public function storePosRequest(Request $request)
+    {
+        try {
+            $business_id = $request->session()->get('user.business_id');
+
+            DB::beginTransaction();
+
+            $inventoryRequest = InventoryRequest::create([
+                'business_id' => $business_id,
+                'request_number' => 'REQ-' . time(),
+                'source_location_id' => $request->input('source_location_id'),
+                'destination_location_id' => $request->input('destination_location_id'),
+                'requested_by' => auth()->user()->id,
+                'status' => 'Pending Approval',
+                'notes' => $request->input('notes'),
+            ]);
+
+            $products = $request->input('products');
+            if (!empty($products)) {
+                foreach ($products as $product) {
+                    if (!empty($product['quantity'])) {
+                        InventoryRequestLine::create([
+                            'inventory_request_id' => $inventoryRequest->id,
+                            'product_id' => $product['product_id'],
+                            'variation_id' => $product['variation_id'],
+                            'quantity_requested' => $product['quantity'],
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return response()->json(['success' => true, 'msg' => __('Inventory request created successfully')]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
+            return response()->json(['success' => false, 'msg' => __('messages.something_went_wrong')]);
+        }
+    }
+
     public function show($id)
     {
         $inventoryRequest = InventoryRequest::with(['lines.product', 'lines.variation', 'sourceLocation', 'destinationLocation', 'requestedBy'])->findOrFail($id);

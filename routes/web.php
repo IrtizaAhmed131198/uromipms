@@ -151,6 +151,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::resource('inventory-requests', InventoryRequestController::class);
     Route::post('inventory-requests/{id}/approve', [InventoryRequestController::class, 'approve'])->name('inventory-requests.approve');
     Route::post('inventory-requests/{id}/accept', [InventoryRequestController::class, 'accept'])->name('inventory-requests.accept');
+    
+    Route::post('/pos/inventory-request', [InventoryRequestController::class, 'storePosRequest']);
+
 
     Route::resource('payment-account', 'PaymentAccountController');
 

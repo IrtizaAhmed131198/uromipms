@@ -95,6 +95,8 @@
     @include('sale_pos.partials.recent_transactions_modal')
 
     @include('sale_pos.partials.weighing_scale_modal')
+    
+    @include('sale_pos.partials.inventory_request_modal')
 
 @stop
 @section('css')
@@ -121,7 +123,6 @@
             in_array('service_staff', $enabled_modules))
         <script src="{{ asset('js/restaurant.js?v=' . $asset_v) }}"></script>
     @endif
-    <!-- include module js -->
     @if (!empty($pos_module_data))
         @foreach ($pos_module_data as $key => $value)
             @if (!empty($value['module_js_path']))
@@ -129,4 +130,118 @@
             @endif
         @endforeach
     @endif
+
+<script>
+    $(document).ready(function() {
+        // Initialize select2 in modal
+        $('#inventory_request_modal').on('shown.bs.modal', function () {
+            $('#ir_source_location_id').select2({ dropdownParent: $('#inventory_request_modal') });
+            $('#ir_destination_location_id').select2({ dropdownParent: $('#inventory_request_modal') });
+        });
+
+        // Autocomplete to select products
+        $('#ir_search_product').autocomplete({
+            source: function(request, response) {
+                var location_id = $('#ir_source_location_id').val();
+                if(!location_id){
+                    toastr.error('Please select source location first');
+                    return false;
+                }
+                $.getJSON('/products/list', { location_id: location_id, term: request.term, not_for_selling: 0 }, response);
+            },
+            minLength: 2,
+            appendTo: "#inventory_request_modal",
+            response: function(event, ui) {
+                if (ui.content.length == 1) {
+                    ui.item = ui.content[0];
+                    $(this).data('ui-autocomplete')._trigger('select', 'autocompleteselect', ui);
+                    $(this).autocomplete('close');
+                } else if (ui.content.length == 0) {
+                    toastr.error('Product not found');
+                }
+            },
+            select: function(event, ui) {
+                var product_id = ui.item.product_id;
+                var variation_id = ui.item.variation_id;
+                
+                var name = ui.item.name;
+                if (ui.item.type == 'variable') {
+                    name += ' - ' + ui.item.variation;
+                }
+                name += ' (' + ui.item.sub_sku + ')';
+
+                var rowCount = $('#ir_request_lines_table tbody tr').length;
+                var row = `<tr>
+                    <td>
+                        ${name}
+                        <input type="hidden" name="products[${rowCount}][product_id]" value="${product_id}">
+                        <input type="hidden" name="products[${rowCount}][variation_id]" value="${variation_id}">
+                    </td>
+                    <td>
+                        <input type="number" name="products[${rowCount}][quantity]" class="form-control ir_quantity" value="1" min="1" required>
+                    </td>
+                    <td><button type="button" class="btn btn-danger btn-xs ir_remove_row"><i class="fa fa-times"></i></button></td>
+                </tr>`;
+                
+                $('#ir_request_lines_table tbody').append(row);
+                $(this).val('');
+                return false;
+            }
+        })
+        .autocomplete('instance')._renderItem = function(ul, item) {
+            var string = '<div>' + item.name;
+            if (item.type == 'variable') {
+                string += '-' + item.variation;
+            }
+            string += ' (' + item.sub_sku + ')';
+            if (item.enable_stock == 1) {
+                var qty_available = item.qty_available || 0;
+                string += ' - ' + qty_available + item.unit;
+            }
+            string += '</div>';
+            return $('<li>').append(string).appendTo(ul);
+        };
+
+        $(document).on('click', '.ir_remove_row', function() {
+            $(this).closest('tr').remove();
+        });
+
+        // Submit form via AJAX
+        $('#submit_inventory_request').click(function() {
+            if ($('#ir_request_lines_table tbody tr').length == 0) {
+                toastr.error('Please add at least one product to request.');
+                return false;
+            }
+
+            var btn = $(this);
+            btn.prop('disabled', true).text('Submitting...');
+
+            var data = $('#pos_inventory_request_form').serialize();
+            
+            $.ajax({
+                url: '/pos/inventory-request',
+                method: 'POST',
+                data: data,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(result) {
+                    if (result.success) {
+                        toastr.success(result.msg);
+                        $('#inventory_request_modal').modal('hide');
+                        $('#ir_request_lines_table tbody').empty();
+                        $('#ir_notes').val('');
+                    } else {
+                        toastr.error(result.msg);
+                    }
+                    btn.prop('disabled', false).text('Submit');
+                },
+                error: function() {
+                    toastr.error('Something went wrong. Please try again.');
+                    btn.prop('disabled', false).text('Submit');
+                }
+            });
+        });
+    });
+</script>
 @endsection
