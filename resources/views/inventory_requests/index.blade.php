@@ -22,6 +22,9 @@
                 <thead>
                     <tr>
                         <th>Request Number</th>
+                        <th>Products</th>
+                        <th>Qty Requested</th>
+                        <th>Qty Approved</th>
                         <th>Source Location</th>
                         <th>Destination Location</th>
                         <th>Requested By</th>
@@ -47,6 +50,9 @@
             ajax: '/inventory-requests',
             columns: [
                 { data: 'request_number', name: 'request_number' },
+                { data: 'products', name: 'products', searchable: false, sortable: false },
+                { data: 'qty_requested', name: 'qty_requested', searchable: false, sortable: false },
+                { data: 'qty_approved', name: 'qty_approved', searchable: false, sortable: false },
                 { data: 'source_location', name: 'sl.name' },
                 { data: 'destination_location', name: 'dl.name' },
                 { data: 'requested_by', name: 'requested_by', searchable: false },
@@ -54,7 +60,7 @@
                 { data: 'created_at', name: 'created_at' },
                 { data: 'action', name: 'action', searchable: false, sortable: false }
             ],
-            order: [[5, 'desc']]
+            order: [[8, 'desc']]
         });
 
         // Handle accept stock

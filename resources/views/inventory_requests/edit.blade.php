@@ -43,8 +43,8 @@
                                 <td><span class="label bg-blue">{{@format_quantity($available_qty)}}</span></td>
                                 <td>
                                     <input type="number" name="approved_lines[{{$line->id}}]" class="form-control" 
-                                        value="{{$line->quantity_requested > $available_qty ? $available_qty : $line->quantity_requested}}" 
-                                        max="{{$available_qty}}" min="0" required>
+                                        value="{{ number_format($line->quantity_requested > $available_qty ? $available_qty : $line->quantity_requested, 1, '.', '') }}" 
+                                        step="any" max="{{$available_qty}}" min="0" required>
                                 </td>
                             </tr>
                         @endforeach

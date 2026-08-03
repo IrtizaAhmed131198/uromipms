@@ -38,6 +38,7 @@ class InventoryRequestController extends Controller
 
         if (request()->ajax()) {
             $inventory_requests = InventoryRequest::where('inventory_requests.business_id', $business_id)
+                ->with(['lines.product', 'lines.variation'])
                 ->join('business_locations as sl', 'inventory_requests.source_location_id', '=', 'sl.id')
                 ->join('business_locations as dl', 'inventory_requests.destination_location_id', '=', 'dl.id')
                 ->join('users as u', 'inventory_requests.requested_by', '=', 'u.id')
@@ -86,8 +87,35 @@ class InventoryRequestController extends Controller
                     $bg = $badges[$row->status] ?? 'bg-gray';
                     return '<span class="label ' . $bg . '">' . $row->status . '</span>';
                 })
+                ->addColumn('products', function ($row) {
+                    $html = [];
+                    foreach ($row->lines as $line) {
+                        if ($line->product) {
+                            $name = $line->product->name;
+                            if ($line->product->type == 'variable' && $line->variation) {
+                                $name .= ' - ' . $line->variation->name;
+                            }
+                            $html[] = $name;
+                        }
+                    }
+                    return implode('<br>', $html);
+                })
+                ->addColumn('qty_requested', function ($row) {
+                    $html = [];
+                    foreach ($row->lines as $line) {
+                        $html[] = number_format($line->quantity_requested, 1, '.', '');
+                    }
+                    return implode('<br>', $html);
+                })
+                ->addColumn('qty_approved', function ($row) {
+                    $html = [];
+                    foreach ($row->lines as $line) {
+                        $html[] = number_format((float)$line->quantity_approved, 1, '.', '');
+                    }
+                    return implode('<br>', $html);
+                })
                 ->editColumn('created_at', '{{@format_datetime($created_at)}}')
-                ->rawColumns(['action', 'status'])
+                ->rawColumns(['action', 'status', 'products', 'qty_requested', 'qty_approved'])
                 ->make(true);
         }
 
@@ -97,7 +125,7 @@ class InventoryRequestController extends Controller
     public function create()
     {
         $business_id = request()->session()->get('user.business_id');
-        $business_locations = BusinessLocation::forDropdown($business_id, false, true);
+        $business_locations = BusinessLocation::forDropdown($business_id);
 
         return view('inventory_requests.create', compact('business_locations'));
     }

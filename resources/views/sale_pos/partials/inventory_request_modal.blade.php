@@ -10,7 +10,7 @@
                 <form id="pos_inventory_request_form">
                     @php
                         $business_id = request()->session()->get('user.business_id');
-                        $all_locations = App\BusinessLocation::forDropdown($business_id, false, true);
+                        $all_locations = App\BusinessLocation::forDropdown($business_id);
                     @endphp
                     
                     <div class="row">

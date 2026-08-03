@@ -172,7 +172,7 @@
                                 $business_locations,
                                 $default_location->id ?? null,
                                 ['class' => 'form-control input-sm', 'id' => 'select_location_id', 'required', 'autofocus'],
-                                $bl_attributes,
+                                // $bl_attributes,
                             ) !!}
                         @else
                             {{ $default_location->name }}
