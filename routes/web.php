@@ -148,11 +148,12 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         return view('pwa.install');
     })->name('pwa.install');
 
+    Route::get('inventory-requests/pending-acceptance', [InventoryRequestController::class, 'pendingAcceptance'])->name('inventory-requests.pending-acceptance');
     Route::resource('inventory-requests', InventoryRequestController::class);
     Route::post('inventory-requests/{id}/approve', [InventoryRequestController::class, 'approve'])->name('inventory-requests.approve');
     Route::post('inventory-requests/{id}/accept', [InventoryRequestController::class, 'accept'])->name('inventory-requests.accept');
     
-    Route::post('/pos/inventory-request', [InventoryRequestController::class, 'storePosRequest']);
+    Route::post('/pos/inventory-request', [InventoryRequestController::class, 'storePosRequest'])->name('pos.inventory-request.store');
 
 
     Route::resource('payment-account', 'PaymentAccountController');

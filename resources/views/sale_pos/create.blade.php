@@ -97,6 +97,7 @@
     @include('sale_pos.partials.weighing_scale_modal')
     
     @include('sale_pos.partials.inventory_request_modal')
+    @include('sale_pos.partials.incoming_stock_modal')
 
 @stop
 @section('css')
@@ -219,7 +220,7 @@
             var data = $('#pos_inventory_request_form').serialize();
             
             $.ajax({
-                url: '/pos/inventory-request',
+                url: "{{ route('pos.inventory-request.store') }}",
                 method: 'POST',
                 data: data,
                 headers: {
@@ -242,6 +243,67 @@
                 }
             });
         });
+
+        var incoming_stock_table = null;
+        $('#incoming_stock_modal').on('shown.bs.modal', function () {
+            if (incoming_stock_table == null) {
+                incoming_stock_table = $('#incoming_stock_table').DataTable({
+                    processing: true,
+                    serverSide: true,
+                    ajax: {
+                        url: "{{ route('inventory-requests.pending-acceptance') }}",
+                        data: function (d) {
+                            d.location_id = $('input#location_id').val();
+                        }
+                    },
+                    buttons: [],
+                    dom: 'lfrtip',
+                    columns: [
+                        { data: 'request_number', name: 'request_number' },
+                        { data: 'source_location', name: 'sl.name' },
+                        { data: 'products', name: 'products', searchable: false, sortable: false },
+                        { data: 'requested_by', name: 'requested_by', searchable: false },
+                        { data: 'created_at', name: 'created_at' },
+                        { data: 'action', name: 'action', searchable: false, sortable: false }
+                    ],
+                    order: [[4, 'desc']]
+                });
+            } else {
+                incoming_stock_table.ajax.reload();
+            }
+        });
+
+        $(document).on('click', '.accept-pending-request', function(e) {
+            e.preventDefault();
+            var href = $(this).data('href');
+            var btn = $(this);
+            btn.prop('disabled', true);
+            
+            $.ajax({
+                method: "POST",
+                url: href,
+                dataType: "json",
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content') || "{{ csrf_token() }}"
+                },
+                success: function(result){
+                    if(result.success == true || result.success == 1){
+                        toastr.success(result.msg);
+                        if(incoming_stock_table) {
+                            incoming_stock_table.ajax.reload();
+                        }
+                    } else {
+                        toastr.error(result.msg);
+                        btn.prop('disabled', false);
+                    }
+                },
+                error: function() {
+                    toastr.error('Something went wrong. Please try again.');
+                    btn.prop('disabled', false);
+                }
+            });
+        });
+
     });
 </script>
 @endsection

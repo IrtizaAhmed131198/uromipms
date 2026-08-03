@@ -143,6 +143,10 @@
                 @endif
                 <button type="button"
                     class="tw-font-bold tw-bg-[#646EE4] hover:tw-bg-[#414aac] tw-rounded-full tw-text-white tw-w-full md:tw-w-fit tw-px-5 tw-h-11 tw-cursor-pointer tw-text-xs md:tw-text-sm"
+                    data-toggle="modal" data-target="#incoming_stock_modal" id="btn-incoming-stock"> <i
+                        class="fas fa-truck-loading"></i> Incoming Stock</button>
+                <button type="button"
+                    class="tw-font-bold tw-bg-[#646EE4] hover:tw-bg-[#414aac] tw-rounded-full tw-text-white tw-w-full md:tw-w-fit tw-px-5 tw-h-11 tw-cursor-pointer tw-text-xs md:tw-text-sm"
                     data-toggle="modal" data-target="#inventory_request_modal" id="btn-inventory-request"> <i
                         class="fas fa-boxes"></i> Inventory Request</button>
             </div>

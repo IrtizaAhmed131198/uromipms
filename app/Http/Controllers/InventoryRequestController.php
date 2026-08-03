@@ -122,6 +122,50 @@ class InventoryRequestController extends Controller
         return view('inventory_requests.index');
     }
 
+    public function pendingAcceptance(Request $request)
+    {
+        $business_id = request()->session()->get('user.business_id');
+        $location_id = $request->input('location_id');
+
+        if (request()->ajax()) {
+            $inventory_requests = InventoryRequest::where('inventory_requests.business_id', $business_id)
+                ->where('inventory_requests.destination_location_id', $location_id)
+                ->whereIn('inventory_requests.status', ['Approved', 'Partially Approved'])
+                ->with(['lines.product', 'lines.variation'])
+                ->join('business_locations as sl', 'inventory_requests.source_location_id', '=', 'sl.id')
+                ->join('users as u', 'inventory_requests.requested_by', '=', 'u.id')
+                ->select([
+                    'inventory_requests.id',
+                    'inventory_requests.request_number',
+                    'sl.name as source_location',
+                    'inventory_requests.status',
+                    'inventory_requests.created_at',
+                    DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as requested_by")
+                ]);
+
+            return Datatables::of($inventory_requests)
+                ->addColumn('action', function ($row) {
+                    return '<button type="button" class="btn btn-primary btn-sm accept-pending-request" data-href="' . route('inventory-requests.accept', [$row->id]) . '"><i class="fas fa-check"></i> Accept</button>';
+                })
+                ->addColumn('products', function ($row) {
+                    $html = [];
+                    foreach ($row->lines as $line) {
+                        if ($line->product) {
+                            $name = $line->product->name;
+                            if ($line->product->type == 'variable' && $line->variation) {
+                                $name .= ' - ' . $line->variation->name;
+                            }
+                            $html[] = $name . ' (Qty: ' . number_format((float)$line->quantity_approved, 1, '.', '') . ')';
+                        }
+                    }
+                    return implode('<br>', $html);
+                })
+                ->editColumn('created_at', '{{@format_datetime($created_at)}}')
+                ->rawColumns(['action', 'products'])
+                ->make(true);
+        }
+    }
+
     public function create()
     {
         $business_id = request()->session()->get('user.business_id');
