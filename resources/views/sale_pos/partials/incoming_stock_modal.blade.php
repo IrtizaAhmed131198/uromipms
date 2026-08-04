@@ -3,7 +3,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="incomingStockModalLabel"><i class="fas fa-truck-loading"></i> @lang('Incoming Stock (Approved Requests)')</h4>
+                <h4 class="modal-title" id="incomingStockModalLabel"><i class="fas fa-truck-loading"></i> @lang('Incoming Stock (Approved & Completed Requests)')</h4>
             </div>
             
             <div class="modal-body">
@@ -16,6 +16,7 @@
                                 <th>Products</th>
                                 <th>Requested By</th>
                                 <th>Created At</th>
+                                <th>Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>

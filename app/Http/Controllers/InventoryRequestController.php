@@ -130,7 +130,7 @@ class InventoryRequestController extends Controller
         if (request()->ajax()) {
             $inventory_requests = InventoryRequest::where('inventory_requests.business_id', $business_id)
                 ->where('inventory_requests.destination_location_id', $location_id)
-                ->whereIn('inventory_requests.status', ['Approved', 'Partially Approved'])
+                ->whereIn('inventory_requests.status', ['Approved', 'Completed'])
                 ->with(['lines.product', 'lines.variation'])
                 ->join('business_locations as sl', 'inventory_requests.source_location_id', '=', 'sl.id')
                 ->join('users as u', 'inventory_requests.requested_by', '=', 'u.id')
@@ -144,8 +144,23 @@ class InventoryRequestController extends Controller
                 ]);
 
             return Datatables::of($inventory_requests)
+                ->editColumn('status', function ($row) {
+                    $badges = [
+                        'Pending Approval' => 'bg-yellow',
+                        'Approved' => 'bg-green',
+                        'Partially Approved' => 'bg-light-blue',
+                        'Rejected' => 'bg-red',
+                        'Accepted' => 'bg-green',
+                        'Completed' => 'bg-green'
+                    ];
+                    $bg = $badges[$row->status] ?? 'bg-gray';
+                    return '<span class="label ' . $bg . '">' . $row->status . '</span>';
+                })
                 ->addColumn('action', function ($row) {
-                    return '<button type="button" class="btn btn-primary btn-sm accept-pending-request" data-href="' . route('inventory-requests.accept', [$row->id]) . '"><i class="fas fa-check"></i> Accept</button>';
+                    if (in_array($row->status, ['Approved', 'Partially Approved'])) {
+                        return '<button type="button" class="btn btn-primary btn-sm accept-pending-request" data-href="' . route('inventory-requests.accept', [$row->id]) . '"><i class="fas fa-check"></i> Accept</button>';
+                    }
+                    return '';
                 })
                 ->addColumn('products', function ($row) {
                     $html = [];
@@ -161,7 +176,7 @@ class InventoryRequestController extends Controller
                     return implode('<br>', $html);
                 })
                 ->editColumn('created_at', '{{@format_datetime($created_at)}}')
-                ->rawColumns(['action', 'products'])
+                ->rawColumns(['action', 'products', 'status'])
                 ->make(true);
         }
     }

@@ -264,6 +264,7 @@
                         { data: 'products', name: 'products', searchable: false, sortable: false },
                         { data: 'requested_by', name: 'requested_by', searchable: false },
                         { data: 'created_at', name: 'created_at' },
+                        { data: 'status', name: 'status', searchable: false },
                         { data: 'action', name: 'action', searchable: false, sortable: false }
                     ],
                     order: [[4, 'desc']]
