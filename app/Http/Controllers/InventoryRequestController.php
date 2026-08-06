@@ -355,6 +355,33 @@ class InventoryRequestController extends Controller
                 $line->save();
 
                 if ($line->quantity_approved > 0) {
+                    $dest_product_id = $line->product_id;
+                    $dest_variation_id = $line->variation_id;
+
+                    $source_product = \App\Product::find($line->product_id);
+                    $source_variation = \App\Variation::find($line->variation_id);
+
+                    if ($source_product && $source_variation) {
+                        $matching_product = \App\Product::where('business_id', $business_id)
+                            ->where('name', $source_product->name)
+                            ->where('category_id', $source_product->category_id)
+                            ->whereHas('variations', function($q) use ($source_variation) {
+                                $q->where('name', $source_variation->name);
+                            })
+                            ->first();
+
+                        if ($matching_product) {
+                            $matching_variation = \App\Variation::where('product_id', $matching_product->id)
+                                ->where('name', $source_variation->name)
+                                ->first();
+                            
+                            if ($matching_variation) {
+                                $dest_product_id = $matching_product->id;
+                                $dest_variation_id = $matching_variation->id;
+                            }
+                        }
+                    }
+
                     $sell_lines[] = [
                         'product_id' => $line->product_id,
                         'variation_id' => $line->variation_id,
@@ -364,8 +391,8 @@ class InventoryRequestController extends Controller
                         'item_tax' => 0,
                     ];
                     $purchase_lines[] = [
-                        'product_id' => $line->product_id,
-                        'variation_id' => $line->variation_id,
+                        'product_id' => $dest_product_id,
+                        'variation_id' => $dest_variation_id,
                         'quantity' => $line->quantity_approved,
                         'purchase_price' => 0,
                         'purchase_price_inc_tax' => 0,
@@ -383,8 +410,8 @@ class InventoryRequestController extends Controller
                     // Increase stock to destination
                     $this->productUtil->updateProductQuantity(
                         $inventoryRequest->destination_location_id,
-                        $line->product_id,
-                        $line->variation_id,
+                        $dest_product_id,
+                        $dest_variation_id,
                         $line->quantity_approved
                     );
                 }
