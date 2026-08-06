@@ -350,21 +350,49 @@ class ProductUtil extends Util
      */
     public function updateProductQuantity($location_id, $product_id, $variation_id, $new_quantity, $old_quantity = 0, $number_format = null, $uf_data = true)
     {
+        \Log::info('updateProductQuantity called', [
+            'location_id' => $location_id,
+            'product_id' => $product_id,
+            'variation_id' => $variation_id,
+            'new_quantity' => $new_quantity,
+            'old_quantity' => $old_quantity,
+            'number_format' => $number_format,
+            'uf_data' => $uf_data,
+        ]);
+
         if ($uf_data) {
             $qty_difference = $this->num_uf($new_quantity, $number_format) - $this->num_uf($old_quantity, $number_format);
         } else {
             $qty_difference = $new_quantity - $old_quantity;
         }
 
+        \Log::info('Calculated qty_difference', ['qty_difference' => $qty_difference]);
+
         $product = Product::find($product_id);
 
-        // Check if stock is enabled or not.
+        if (!$product) {
+            \Log::warning('Product not found', ['product_id' => $product_id]);
+            return true; // silently returning true here — worth flagging
+        }
+
+        \Log::info('Product enable_stock check', [
+            'product_id' => $product_id,
+            'enable_stock' => $product->enable_stock,
+        ]);
+
         if ($product->enable_stock == 1 && $qty_difference != 0) {
             $variation = Variation::where('id', $variation_id)
                 ->where('product_id', $product_id)
                 ->first();
 
-            // Add quantity in VariationLocationDetails
+            if (!$variation) {
+                \Log::warning('Variation not found', [
+                    'variation_id' => $variation_id,
+                    'product_id' => $product_id,
+                ]);
+                return true;
+            }
+
             $variation_location_d = VariationLocationDetails::where('variation_id', $variation->id)
                 ->where('product_id', $product_id)
                 ->where('product_variation_id', $variation->product_variation_id)
@@ -372,6 +400,12 @@ class ProductUtil extends Util
                 ->first();
 
             if (empty($variation_location_d)) {
+                \Log::info('No existing VariationLocationDetails, creating new row', [
+                    'variation_id' => $variation->id,
+                    'product_id' => $product_id,
+                    'location_id' => $location_id,
+                ]);
+
                 $variation_location_d = new VariationLocationDetails();
                 $variation_location_d->variation_id = $variation->id;
                 $variation_location_d->product_id = $product_id;
@@ -380,8 +414,23 @@ class ProductUtil extends Util
                 $variation_location_d->qty_available = 0;
             }
 
+            $before = $variation_location_d->qty_available;
             $variation_location_d->qty_available += $qty_difference;
+
+            \Log::info('Updating qty_available', [
+                'variation_location_details_id' => $variation_location_d->id ?? null,
+                'qty_before' => $before,
+                'qty_difference' => $qty_difference,
+                'qty_after' => $variation_location_d->qty_available,
+            ]);
+
             $variation_location_d->save();
+        } else {
+            \Log::info('Skipped stock update', [
+                'enable_stock' => $product->enable_stock,
+                'qty_difference' => $qty_difference,
+                'reason' => $product->enable_stock != 1 ? 'stock disabled' : 'no qty difference',
+            ]);
         }
 
         return true;
@@ -574,9 +623,12 @@ class ProductUtil extends Util
         // get stock of the items and calcuate accordingly.
         $combo_qty = 0;
         foreach ($combo_variations as $key => $value) {
-            $variation = Variation::with(['product', 'variation_location_details' => function ($q) use ($location_id) {
-                $q->where('location_id', $location_id);
-            }])->findOrFail($value['variation_id']);
+            $variation = Variation::with([
+                'product',
+                'variation_location_details' => function ($q) use ($location_id) {
+                    $q->where('location_id', $location_id);
+                }
+            ])->findOrFail($value['variation_id']);
 
             $product = $variation->product;
 
@@ -615,9 +667,12 @@ class ProductUtil extends Util
         $details = [];
 
         foreach ($combo_variations as $key => $value) {
-            $variation = Variation::with(['product', 'variation_location_details' => function ($q) use ($location_id) {
-                $q->where('location_id', $location_id);
-            }])->findOrFail($value['variation_id']);
+            $variation = Variation::with([
+                'product',
+                'variation_location_details' => function ($q) use ($location_id) {
+                    $q->where('location_id', $location_id);
+                }
+            ])->findOrFail($value['variation_id']);
 
             $vld = $variation->variation_location_details->first();
 
@@ -912,8 +967,10 @@ class ProductUtil extends Util
             $variation_data['sell_price_inc_tax'] = $variation_details->sell_price_inc_tax;
         }
 
-        if (($variation_details->default_purchase_price != $variation_data['pp_without_discount']) ||
-                ($variation_details->sell_price_inc_tax != $variation_data['sell_price_inc_tax'])) {
+        if (
+            ($variation_details->default_purchase_price != $variation_data['pp_without_discount']) ||
+            ($variation_details->sell_price_inc_tax != $variation_data['sell_price_inc_tax'])
+        ) {
             // Set default purchase price exc. tax
             $variation_details->default_purchase_price = $variation_data['pp_without_discount'];
 
@@ -1974,8 +2031,10 @@ class ProductUtil extends Util
             ->get()
             ->first();
 
-        $current_stock = VariationLocationDetails::where('variation_id',
-                $variation_id)
+        $current_stock = VariationLocationDetails::where(
+            'variation_id',
+            $variation_id
+        )
             ->where('location_id', $location_id)
             ->first();
 
@@ -2005,17 +2064,37 @@ class ProductUtil extends Util
 
     public function getVariationStockHistory($business_id, $variation_id, $location_id)
     {
-        $stock_history = Transaction::leftjoin('transaction_sell_lines as sl',
-                'sl.transaction_id', '=', 'transactions.id')
-            ->leftjoin('purchase_lines as pl',
-                'pl.transaction_id', '=', 'transactions.id')
-            ->leftjoin('stock_adjustment_lines as al',
-                'al.transaction_id', '=', 'transactions.id')
+        $stock_history = Transaction::leftjoin(
+            'transaction_sell_lines as sl',
+            'sl.transaction_id',
+            '=',
+            'transactions.id'
+        )
+            ->leftjoin(
+                'purchase_lines as pl',
+                'pl.transaction_id',
+                '=',
+                'transactions.id'
+            )
+            ->leftjoin(
+                'stock_adjustment_lines as al',
+                'al.transaction_id',
+                '=',
+                'transactions.id'
+            )
             ->leftjoin('transactions as return', 'transactions.return_parent_id', '=', 'return.id')
-            ->leftjoin('purchase_lines as rpl',
-                'rpl.transaction_id', '=', 'return.id')
-            ->leftjoin('transaction_sell_lines as rsl',
-                'rsl.transaction_id', '=', 'return.id')
+            ->leftjoin(
+                'purchase_lines as rpl',
+                'rpl.transaction_id',
+                '=',
+                'return.id'
+            )
+            ->leftjoin(
+                'transaction_sell_lines as rsl',
+                'rsl.transaction_id',
+                '=',
+                'return.id'
+            )
             ->leftjoin('contacts as c', 'transactions.contact_id', '=', 'c.id')
             ->where('transactions.location_id', $location_id)
             ->where(function ($q) use ($variation_id) {
