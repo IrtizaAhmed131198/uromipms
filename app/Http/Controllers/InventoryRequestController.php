@@ -7,6 +7,8 @@ use App\InventoryRequest;
 use App\InventoryRequestLine;
 use App\Product;
 use App\Variation;
+use App\Category;
+use App\User;
 use App\Utils\ModuleUtil;
 use App\Utils\ProductUtil;
 use App\Utils\TransactionUtil;
@@ -51,6 +53,45 @@ class InventoryRequestController extends Controller
                     'inventory_requests.created_at',
                     DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as requested_by")
                 ]);
+
+            if (!empty(request()->start_date) && !empty(request()->end_date)) {
+                $start = request()->start_date;
+                $end = request()->end_date;
+                $inventory_requests->whereDate('inventory_requests.created_at', '>=', $start)
+                                   ->whereDate('inventory_requests.created_at', '<=', $end);
+            }
+
+            if (!empty(request()->source_location_id)) {
+                $inventory_requests->where('inventory_requests.source_location_id', request()->source_location_id);
+            }
+
+            if (!empty(request()->destination_location_id)) {
+                $inventory_requests->where('inventory_requests.destination_location_id', request()->destination_location_id);
+            }
+
+            if (!empty(request()->status)) {
+                $inventory_requests->where('inventory_requests.status', request()->status);
+            }
+
+            if (!empty(request()->requested_by)) {
+                $inventory_requests->where('inventory_requests.requested_by', request()->requested_by);
+            }
+
+            if (!empty(request()->approved_by)) {
+                $inventory_requests->where('inventory_requests.approved_by', request()->approved_by);
+            }
+
+            if (!empty(request()->product_id)) {
+                $inventory_requests->whereHas('lines', function ($q) {
+                    $q->where('product_id', request()->product_id);
+                });
+            }
+
+            if (!empty(request()->category_id)) {
+                $inventory_requests->whereHas('lines.product', function ($q) {
+                    $q->where('category_id', request()->category_id);
+                });
+            }
 
             return Datatables::of($inventory_requests)
                 ->addColumn('action', function ($row) {
@@ -119,7 +160,19 @@ class InventoryRequestController extends Controller
                 ->make(true);
         }
 
-        return view('inventory_requests.index');
+        $business_locations = BusinessLocation::forDropdown($business_id);
+        $categories = Category::forDropdown($business_id, 'product');
+        $users = User::forDropdown($business_id, false);
+        $products = Product::where('business_id', $business_id)->pluck('name', 'id');
+        $statuses = [
+            'Pending Approval' => __('Pending Approval'),
+            'Approved' => __('Approved'),
+            'Partially Approved' => __('Partially Approved'),
+            'Rejected' => __('Rejected'),
+            'Completed' => __('Completed'),
+        ];
+
+        return view('inventory_requests.index', compact('business_locations', 'categories', 'users', 'products', 'statuses'));
     }
 
     public function pendingAcceptance(Request $request)
