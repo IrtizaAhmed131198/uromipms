@@ -400,14 +400,31 @@
 
     // ── Start Scanner ──
     async function startScanner() {
+        if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            showToast('Camera requires HTTPS connection', 'error');
+            return;
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showToast('Camera API not supported by browser', 'error');
+            return;
+        }
+
         if (typeof ZXing === 'undefined') {
             showToast('Scanner library loading... Try again.', 'error');
             return;
         }
+        
         codeReader = new ZXing.BrowserMultiFormatReader();
         try {
+            // Explicitly request camera permission first to force the browser prompt
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            
+            // Stop the initial stream immediately, we just needed the permission prompt
+            stream.getTracks().forEach(track => track.stop());
+
             const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-            if (devices.length === 0) { showToast('No camera found', 'error'); return; }
+            if (devices.length === 0) { showToast('No camera hardware found', 'error'); return; }
+            
             // Prefer back camera
             const device = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
 
@@ -425,7 +442,14 @@
                 }
             });
         } catch (e) {
-            showToast('Camera access denied', 'error');
+            console.error('Scanner Error:', e);
+            if (e.name === 'NotAllowedError') {
+                showToast('Camera access denied by user', 'error');
+            } else if (e.name === 'NotFoundError') {
+                showToast('No camera hardware found', 'error');
+            } else {
+                showToast('Camera access denied or unavailable', 'error');
+            }
             stopScanner();
         }
     }
