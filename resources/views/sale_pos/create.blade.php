@@ -51,6 +51,18 @@
                 margin-bottom: 0;
             }
         }
+
+        @media(max-width:575px){
+            table.table.table-condensed tbody tr {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            table.table.table-condensed tbody tr td {
+                width: 50%;
+            }
+        }
     </style>
 @endsection
 
