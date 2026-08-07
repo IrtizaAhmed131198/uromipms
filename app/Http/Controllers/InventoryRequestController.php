@@ -32,7 +32,7 @@ class InventoryRequestController extends Controller
 
     public function index()
     {
-        if (!auth()->user()->can('purchase.view') && !auth()->user()->can('purchase.create')) {
+        if (!auth()->user()->can('inventory_request.view')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -105,11 +105,11 @@ class InventoryRequestController extends Controller
                             <ul class="dropdown-menu dropdown-menu-right" role="menu">
                                 <li><a href="' . route('inventory-requests.show', [$row->id]) . '"><i class="fas fa-eye" aria-hidden="true"></i> ' . __("messages.view") . '</a></li>';
                     
-                    if ($row->status == 'Pending Approval') {
+                    if ($row->status == 'Pending Approval' && auth()->user()->can('inventory_request.approve')) {
                         $html .= '<li><a href="' . route('inventory-requests.edit', [$row->id]) . '"><i class="fas fa-check-circle"></i> Approve / Reject</a></li>';
                     }
 
-                    if (in_array($row->status, ['Approved', 'Partially Approved'])) {
+                    if (in_array($row->status, ['Approved', 'Partially Approved']) && auth()->user()->can('inventory_request.accept')) {
                         $html .= '<li><a href="#" class="accept-request" data-href="' . route('inventory-requests.accept', [$row->id]) . '"><i class="fas fa-check"></i> Accept Stock</a></li>';
                     }
 
@@ -236,6 +236,9 @@ class InventoryRequestController extends Controller
 
     public function create()
     {
+        if (!auth()->user()->can('inventory_request.create')) {
+            abort(403, 'Unauthorized action.');
+        }
         $business_id = request()->session()->get('user.business_id');
         $business_locations = BusinessLocation::forDropdown($business_id);
 
@@ -332,12 +335,18 @@ class InventoryRequestController extends Controller
 
     public function edit($id)
     {
+        if (!auth()->user()->can('inventory_request.approve')) {
+            abort(403, 'Unauthorized action.');
+        }
         $inventoryRequest = InventoryRequest::with(['lines.product', 'lines.variation'])->findOrFail($id);
         return view('inventory_requests.edit', compact('inventoryRequest'));
     }
 
     public function approve(Request $request, $id)
     {
+        if (!auth()->user()->can('inventory_request.approve')) {
+            abort(403, 'Unauthorized action.');
+        }
         try {
             DB::beginTransaction();
             $inventoryRequest = InventoryRequest::findOrFail($id);
@@ -368,6 +377,9 @@ class InventoryRequestController extends Controller
 
     public function accept(Request $request, $id)
     {
+        if (!auth()->user()->can('inventory_request.accept')) {
+            return ['success' => 0, 'msg' => 'Unauthorized action.'];
+        }
         try {
             DB::beginTransaction();
             $inventoryRequest = InventoryRequest::with(['lines'])->findOrFail($id);

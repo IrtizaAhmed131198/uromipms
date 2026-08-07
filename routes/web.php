@@ -148,6 +148,10 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         return view('pwa.install');
     })->name('pwa.install');
 
+    // Barcode Scanner Routes
+    Route::get('/barcode-scanner', [\App\Http\Controllers\PwaController::class, 'barcodeScanner'])->name('barcode.scanner');
+    Route::get('/api/barcode-lookup', [\App\Http\Controllers\PwaController::class, 'barcodeProductLookup'])->name('barcode.product-lookup');
+
     Route::get('inventory-requests/pending-acceptance', [InventoryRequestController::class, 'pendingAcceptance'])->name('inventory-requests.pending-acceptance');
     Route::resource('inventory-requests', InventoryRequestController::class);
     Route::post('inventory-requests/{id}/approve', [InventoryRequestController::class, 'approve'])->name('inventory-requests.approve');

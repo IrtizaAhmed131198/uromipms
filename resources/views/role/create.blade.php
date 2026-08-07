@@ -578,6 +578,53 @@
         @endif
         <div class="row check_group">
             <div class="col-md-1">
+                <h4>Inventory Request</h4>
+            </div>
+            <div class="col-md-2">
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" class="check_all input-icheck" > {{ __( 'role.select_all' ) }}
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="col-md-12">
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('permissions[]', 'inventory_request.view', false,
+                            [ 'class' => 'input-icheck']); !!} View Inventory Requests
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('permissions[]', 'inventory_request.create', false,
+                            [ 'class' => 'input-icheck']); !!} Create Inventory Request
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('permissions[]', 'inventory_request.approve', false,
+                            [ 'class' => 'input-icheck']); !!} Approve / Reject Inventory Request
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('permissions[]', 'inventory_request.accept', false,
+                            [ 'class' => 'input-icheck']); !!} Accept / Receive Stock (Inventory Request)
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="row check_group">
+            <div class="col-md-1">
                 <h4>@lang( 'sale.pos_sale' )</h4>
             </div>
             <div class="col-md-2">
