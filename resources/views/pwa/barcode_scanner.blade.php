@@ -416,18 +416,6 @@
         
         codeReader = new ZXing.BrowserMultiFormatReader();
         try {
-            // Explicitly request camera permission first to force the browser prompt
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            
-            // Stop the initial stream immediately, we just needed the permission prompt
-            stream.getTracks().forEach(track => track.stop());
-
-            const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-            if (devices.length === 0) { showToast('No camera hardware found', 'error'); return; }
-            
-            // Prefer back camera
-            const device = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
-
             preview.style.display = 'block';
             placeholder.style.display = 'none';
             scanOverlay.style.display = 'flex';
@@ -435,11 +423,19 @@
 
             btnScan.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
 
-            await codeReader.decodeFromVideoDevice(device.deviceId, 'preview', (result, err) => {
+            // Use constraints directly, fallback to front camera if back isn't available
+            const constraints = {
+                video: {
+                    facingMode: "environment"
+                }
+            };
+
+            await codeReader.decodeFromConstraints(constraints, 'preview', (result, err) => {
                 if (result && result.getText() !== lastScanned) {
                     lastScanned = result.getText();
                     lookupProduct(lastScanned);
                 }
+                // Ignore NotFoundException, it just means no barcode in the current frame
             });
         } catch (e) {
             console.error('Scanner Error:', e);
@@ -447,8 +443,24 @@
                 showToast('Camera access denied by user', 'error');
             } else if (e.name === 'NotFoundError') {
                 showToast('No camera hardware found', 'error');
+            } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
+                showToast('Camera is already in use by another app', 'error');
+            } else if (e.name === 'OverconstrainedError') {
+                // Try again without environment constraint (e.g. for desktop webcams)
+                try {
+                    await codeReader.decodeFromConstraints({ video: true }, 'preview', (result, err) => {
+                        if (result && result.getText() !== lastScanned) {
+                            lastScanned = result.getText();
+                            lookupProduct(lastScanned);
+                        }
+                    });
+                } catch (fallbackErr) {
+                    showToast('Failed to start camera', 'error');
+                    stopScanner();
+                }
+                return;
             } else {
-                showToast('Camera access denied or unavailable', 'error');
+                showToast(e.message || 'Camera access unavailable', 'error');
             }
             stopScanner();
         }
