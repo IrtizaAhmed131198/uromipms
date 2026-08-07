@@ -2,6 +2,58 @@
 
 @section('title', __('sale.pos_sale'))
 
+@section('css')
+    <style>
+        .pos-custom-btn {
+            font-weight: 700;
+            background-color: #646EE4;
+            border-radius: 9999px;
+            color: #ffffff;
+            flex: 1;
+            padding: 0 4px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 9px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            border: none;
+            transition: background-color 0.2s;
+            text-align: center;
+            line-height: 1.1;
+            white-space: normal;
+        }
+
+        .pos-custom-btn:hover {
+            background-color: #414aac;
+            color: #ffffff;
+        }
+
+        .pos-custom-btn i {
+            font-size: 12px;
+        }
+
+        @media (min-width: 768px) {
+            .pos-custom-btn {
+                flex: none;
+                width: fit-content;
+                padding: 0 20px;
+                height: 44px;
+                font-size: 14px;
+                flex-direction: row;
+                gap: 6px;
+            }
+
+            .pos-custom-btn i {
+                font-size: 14px;
+                margin-bottom: 0;
+            }
+        }
+    </style>
+@endsection
+
 @section('content')
 <section class="content no-print">
 	<input type="hidden" id="amount_rounding_method" value="{{$pos_settings['amount_rounding_method'] ?? ''}}">

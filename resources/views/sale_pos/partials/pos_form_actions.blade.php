@@ -33,8 +33,9 @@
                             aria-hidden="true"></i> @lang('lang_v1.express_checkout_cash')</button>
                 @endif
                 @if (empty($edit))
-                    <button type="button" class="tw-font-bold tw-text-white tw-cursor-pointer tw-text-xs md:tw-text-sm tw-bg-red-600 tw-p-2 tw-rounded-md tw-w-[5.5rem] tw-flex tw-flex-row tw-items-center tw-justify-center tw-gap-1" id="pos-cancel"> <i
-                            class="fas fa-window-close"></i> @lang('sale.cancel')</button>
+                    <button type="button"
+                        class="tw-font-bold tw-text-white tw-cursor-pointer tw-text-xs md:tw-text-sm tw-bg-red-600 tw-p-2 tw-rounded-md tw-w-[5.5rem] tw-flex tw-flex-row tw-items-center tw-justify-center tw-gap-1"
+                        id="pos-cancel"> <i class="fas fa-window-close"></i> @lang('sale.cancel')</button>
                 @else
                     <button type="button" class="btn-danger tw-dw-btn hide tw-dw-btn-xs" id="pos-delete"
                         @if (!empty($only_payment)) disabled @endif> <i class="fas fa-trash-alt"></i>
@@ -45,8 +46,12 @@
 
                 @if (!Gate::check('disable_draft') || auth()->user()->can('superadmin') || auth()->user()->can('admin'))
                     <!--<button type="button"-->
-                    <!--    class="tw-font-bold tw-text-gray-700 tw-text-xs md:tw-text-sm tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-1 @if ($pos_settings['disable_draft'] != 0) hide @endif"-->
-                    <!--    id="pos-draft" @if (!empty($only_payment)) disabled @endif><i-->
+                    <!--    class="tw-font-bold tw-text-gray-700 tw-text-xs md:tw-text-sm tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-1 @if ($pos_settings['disable_draft'] != 0)
+hide
+@endif"-->
+                    <!--    id="pos-draft" @if (!empty($only_payment))
+disabled
+@endif><i-->
                     <!--        class="fas fa-edit tw-text-[#009ce4]"></i> @lang('sale.draft')</button>-->
                 @endif
 
@@ -71,7 +76,7 @@
 
                 @if (!Gate::check('disable_credit_sale') || auth()->user()->can('superadmin') || auth()->user()->can('admin'))
                     @if (empty($pos_settings['disable_credit_sale_button']))
-                       <input type="hidden" name="is_credit_sale" value="0" id="is_credit_sale">
+                        <input type="hidden" name="is_credit_sale" value="0" id="is_credit_sale">
                         <button type="button"
                             class=" tw-font-bold tw-text-gray-700 tw-cursor-pointer tw-text-xs md:tw-text-sm tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-1 no-print pos-express-finalize @if ($is_mobile) col-xs-6 @endif"
                             data-pay_method="credit_sale" title="@lang('lang_v1.tooltip_credit_sale')"
@@ -82,7 +87,12 @@
                 @endif
                 @if (!Gate::check('disable_card') || auth()->user()->can('superadmin') || auth()->user()->can('admin'))
                     <!--<button type="button"-->
-                    <!--    class="tw-font-bold tw-text-gray-700 tw-cursor-pointer tw-text-xs md:tw-text-sm tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-1  no-print @if (!empty($pos_settings['disable_suspend']))  @endif pos-express-finalize @if (!array_key_exists('card', $payment_types)) hide @endif @if ($is_mobile) col-xs-6 @endif"-->
+                    <!--    class="tw-font-bold tw-text-gray-700 tw-cursor-pointer tw-text-xs md:tw-text-sm tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-1  no-print @if (!empty($pos_settings['disable_suspend']))
+@endif pos-express-finalize @if (!array_key_exists('card', $payment_types))
+hide
+@endif @if ($is_mobile)
+col-xs-6
+@endif"-->
                     <!--    data-pay_method="card" title="@lang('lang_v1.tooltip_express_checkout_card')">-->
                     <!--    <i class="fas fa-credit-card tw-text-[#D61B60]" aria-hidden="true"></i> @lang('lang_v1.express_checkout_card')-->
                     <!--</button>-->
@@ -134,21 +144,25 @@
                 @endif
             </div>
 
-            <div class="tw-w-full md:tw-w-fit tw-flex tw-items-center tw-justify-end tw-gap-3 tw-hidden md:tw-flex">
+            <style>
+
+            </style>
+            <div
+                class="tw-w-full md:tw-w-fit tw-flex tw-items-center tw-justify-center md:tw-justify-end tw-gap-1 md:tw-gap-3 tw-flex-nowrap tw-mt-2 md:tw-mt-0 tw-mb-2 md:tw-mb-0">
                 @if (!isset($pos_settings['hide_recent_trans']) || $pos_settings['hide_recent_trans'] == 0)
-                    <button type="button"
-                        class="tw-font-bold tw-bg-[#646EE4] hover:tw-bg-[#414aac] tw-rounded-full tw-text-white tw-w-full md:tw-w-fit tw-px-5 tw-h-11 tw-cursor-pointer tw-text-xs md:tw-text-sm"
-                        data-toggle="modal" data-target="#recent_transactions_modal" id="recent-transactions"> <i
-                            class="fas fa-clock"></i> @lang('lang_v1.recent_transactions')</button>
+                    <button type="button" class="pos-custom-btn" data-toggle="modal"
+                        data-target="#recent_transactions_modal" id="recent-transactions">
+                        <i class="fas fa-clock"></i> <span>Recent<br>Trans</span>
+                    </button>
                 @endif
-                <button type="button"
-                    class="tw-font-bold tw-bg-[#646EE4] hover:tw-bg-[#414aac] tw-rounded-full tw-text-white tw-w-full md:tw-w-fit tw-px-5 tw-h-11 tw-cursor-pointer tw-text-xs md:tw-text-sm"
-                    data-toggle="modal" data-target="#incoming_stock_modal" id="btn-incoming-stock"> <i
-                        class="fas fa-truck-loading"></i> Incoming Stock</button>
-                <button type="button"
-                    class="tw-font-bold tw-bg-[#646EE4] hover:tw-bg-[#414aac] tw-rounded-full tw-text-white tw-w-full md:tw-w-fit tw-px-5 tw-h-11 tw-cursor-pointer tw-text-xs md:tw-text-sm"
-                    data-toggle="modal" data-target="#inventory_request_modal" id="btn-inventory-request"> <i
-                        class="fas fa-boxes"></i> Inventory Request</button>
+                <button type="button" class="pos-custom-btn" data-toggle="modal" data-target="#incoming_stock_modal"
+                    id="btn-incoming-stock">
+                    <i class="fas fa-truck-loading"></i> <span>Incoming<br>Stock</span>
+                </button>
+                <button type="button" class="pos-custom-btn" data-toggle="modal"
+                    data-target="#inventory_request_modal" id="btn-inventory-request">
+                    <i class="fas fa-boxes"></i> <span>Inventory<br>Request</span>
+                </button>
             </div>
         </div>
     </div>
