@@ -148,6 +148,14 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
         return view('pwa.install');
     })->name('pwa.install');
 
+    Route::get('/install-app', function () {
+        return view('pwa.install');
+    });
+
+    Route::get('/pwa-install', function () {
+        return view('pwa.install');
+    });
+
     // Barcode Scanner Routes
     Route::get('/barcode-scanner', [\App\Http\Controllers\PwaController::class, 'barcodeScanner'])->name('barcode.scanner');
     Route::get('/api/barcode-lookup', [\App\Http\Controllers\PwaController::class, 'barcodeProductLookup'])->name('barcode.product-lookup');
