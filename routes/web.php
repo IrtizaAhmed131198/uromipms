@@ -82,7 +82,7 @@ Route::get('/install', function () {
     return view('pwa.install');
 })->name('pwa.install');
 
-Route::get('/install-app', function () {
+Route::get('/app', function () {
     return view('pwa.install');
 });
 
@@ -113,14 +113,14 @@ Route::middleware(['setData'])->group(function () {
         ->name('confirm_payment');
 });
 
- Route::get('/location/{slug}', [HomeController::class, 'location'])->name('locations.show');
- Route::get('/locations', [HomeController::class, 'locations'])->name('locations.index');
-   
-    Route::get('/location/{slug}/category/{category}', [HomeController::class, 'category'])
-        ->name('locations.category');
+Route::get('/location/{slug}', [HomeController::class, 'location'])->name('locations.show');
+Route::get('/locations', [HomeController::class, 'locations'])->name('locations.index');
 
-    Route::get('/location/{slug}/category/{category}/subcategory/{subcategory}', [HomeController::class, 'subcategory'])
-        ->name('locations.subcategory');
+Route::get('/location/{slug}/category/{category}', [HomeController::class, 'category'])
+    ->name('locations.category');
+
+Route::get('/location/{slug}/category/{category}/subcategory/{subcategory}', [HomeController::class, 'subcategory'])
+    ->name('locations.subcategory');
 // Routes for authenticated users only
 Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 'AdminSidebarMenu', 'CheckUserLogin'])->group(function () {
     Route::get('pos/payment/{id}', [SellPosController::class, 'edit'])->name('edit-pos-payment');
@@ -137,7 +137,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
 
     Route::get('/home', [HomeController::class, 'index'])->name('home');
 
-   
+
 
     Route::get('/home/get-totals', [HomeController::class, 'getTotals']);
     Route::get('/home/product-stock-alert', [HomeController::class, 'getProductStockAlert']);
@@ -166,7 +166,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::resource('inventory-requests', InventoryRequestController::class);
     Route::post('inventory-requests/{id}/approve', [InventoryRequestController::class, 'approve'])->name('inventory-requests.approve');
     Route::post('inventory-requests/{id}/accept', [InventoryRequestController::class, 'accept'])->name('inventory-requests.accept');
-    
+
     Route::post('/pos/inventory-request', [InventoryRequestController::class, 'storePosRequest'])->name('pos.inventory-request.store');
 
 
@@ -398,7 +398,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
 
     Route::get('/opening-stock/add/{product_id}', [OpeningStockController::class, 'add']);
     Route::post('/opening-stock/save', [OpeningStockController::class, 'save']);
-    Route::get('/opening-stock/save', function() {
+    Route::get('/opening-stock/save', function () {
         return redirect('products');
     });
 
@@ -545,8 +545,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
 // });
 
 // common route
-Route::middleware(['auth'])->group(function () {
-});
+Route::middleware(['auth'])->group(function () {});
 
 Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone'])->group(function () {
     Route::get('/load-more-notifications', [HomeController::class, 'loadMoreNotifications']);

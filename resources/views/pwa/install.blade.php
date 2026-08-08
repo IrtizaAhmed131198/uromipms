@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -8,7 +9,11 @@
     @laravelPWA
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -40,9 +45,11 @@
         .install-card::before {
             content: '';
             position: absolute;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 50%);
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
             z-index: -1;
             pointer-events: none;
         }
@@ -56,10 +63,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             padding: 15px;
         }
-        
+
         .app-icon img {
             max-width: 100%;
             max-height: 100%;
@@ -153,10 +160,17 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        
+
         .footer-link {
             display: block;
             margin-top: 24px;
@@ -165,7 +179,7 @@
             font-size: 14px;
             transition: color 0.2s;
         }
-        
+
         .footer-link:hover {
             color: #94a3b8;
         }
@@ -174,11 +188,15 @@
         #status-area {
             display: none;
         }
+
         .success-check {
-            width: 60px; height: 60px;
+            width: 60px;
+            height: 60px;
             background: #10b981;
             border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin: 0 auto 20px;
             color: white;
             box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
@@ -186,24 +204,31 @@
         }
 
         @keyframes popIn {
-            0% { transform: scale(0); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(0);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="install-card">
         <div id="main-content">
             <div class="app-icon">
-                @if(file_exists(public_path('uploads/logo.png')))
+                @if (file_exists(public_path('uploads/logo.png')))
                     <img src="{{ asset('uploads/logo.png') }}" alt="Logo">
                 @elseif(file_exists(public_path('images/icons/icon-192x192.png')))
                     <img src="{{ asset('images/icons/icon-192x192.png') }}" alt="Logo">
                 @elseif(file_exists(public_path('img/logo-small.png')))
                     <img src="{{ asset('img/logo-small.png') }}" alt="Logo">
                 @else
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 21h18"></path>
                         <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path>
                         <path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"></path>
@@ -212,14 +237,16 @@
                     </svg>
                 @endif
             </div>
-            
+
             <div class="badge">Edric Tech</div>
-            
-            <h1>Innfusion Mobile</h1>
-            <p>Get the complete Innfusion experience right on your device. Faster loading, offline support, and quick access.</p>
-            
+
+            <h1>Innfusion</h1>
+            <p>Get the complete Innfusion experience right on your device. Faster loading, offline support, and quick
+                access.</p>
+
             <button id="install-button" class="btn-install" style="display: none;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -248,7 +275,8 @@
 
         <div id="status-area">
             <div class="success-check">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
             </div>
@@ -265,7 +293,7 @@
         const instructionsPanel = document.getElementById('instructions');
         const iosGuide = document.getElementById('ios-guide');
         const desktopGuide = document.getElementById('desktop-guide');
-        
+
         const mainContent = document.getElementById('main-content');
         const statusArea = document.getElementById('status-area');
 
@@ -273,7 +301,8 @@
         const userAgent = window.navigator.userAgent.toLowerCase();
         const isIos = /iphone|ipad|ipod/.test(userAgent);
         const isMacSafari = /macintosh/.test(userAgent) && /safari/.test(userAgent) && !/chrome/.test(userAgent);
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone ===
+        true;
 
         if (isStandalone) {
             // Already installed
@@ -312,10 +341,12 @@
 
         installButton.addEventListener('click', async () => {
             if (!deferredPrompt) return;
-            
+
             deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            
+            const {
+                outcome
+            } = await deferredPrompt.userChoice;
+
             if (outcome === 'accepted') {
                 installButton.style.display = 'none';
             }
@@ -328,4 +359,5 @@
         });
     </script>
 </body>
+
 </html>
