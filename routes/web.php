@@ -78,6 +78,18 @@ include_once 'install_r.php';
 Route::get('/pwa-manifest.webmanifest', [\App\Http\Controllers\PwaController::class, 'manifest'])->name('laravelpwa.manifest');
 Route::get('/pwa-manifest', [\App\Http\Controllers\PwaController::class, 'manifest']);
 
+Route::get('/install', function () {
+    return view('pwa.install');
+})->name('pwa.install');
+
+Route::get('/install-app', function () {
+    return view('pwa.install');
+});
+
+Route::get('/pwa-install', function () {
+    return view('pwa.install');
+});
+
 Route::middleware(['setData'])->group(function () {
     Route::get('/', function () {
         return view('welcome');
@@ -144,17 +156,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
 
     Route::resource('brands', BrandController::class);
 
-    Route::get('/install', function () {
-        return view('pwa.install');
-    })->name('pwa.install');
 
-    Route::get('/install-app', function () {
-        return view('pwa.install');
-    });
-
-    Route::get('/pwa-install', function () {
-        return view('pwa.install');
-    });
 
     // Barcode Scanner Routes
     Route::get('/barcode-scanner', [\App\Http\Controllers\PwaController::class, 'barcodeScanner'])->name('barcode.scanner');
