@@ -284,7 +284,7 @@
             <p>The app has been successfully added to your device. You can now launch it from your home screen.</p>
         </div>
 
-        <a href="{{ url('/') }}" class="footer-link">Continue to website instead</a>
+        {{-- <a href="{{ url('/') }}" class="footer-link">Continue to website instead</a> --}}
     </div>
 
     <script>
@@ -302,7 +302,7 @@
         const isIos = /iphone|ipad|ipod/.test(userAgent);
         const isMacSafari = /macintosh/.test(userAgent) && /safari/.test(userAgent) && !/chrome/.test(userAgent);
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone ===
-        true;
+            true;
 
         if (isStandalone) {
             // Already installed
