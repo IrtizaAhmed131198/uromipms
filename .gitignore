@@ -18,7 +18,6 @@ npm-debug.log
 /public/uploads/UltimatePOS
 /public/uploads/temp
 .scribe
-/public/docs
 /public/js/skins/
 /public/js/icons/
 *.zip
