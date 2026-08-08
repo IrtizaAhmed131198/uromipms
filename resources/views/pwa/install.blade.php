@@ -195,17 +195,24 @@
     <div class="install-card">
         <div id="main-content">
             <div class="app-icon">
-                <!-- Using generic hospital/hotel icon if specific logo not available -->
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 21h18"></path>
-                    <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path>
-                    <path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"></path>
-                    <path d="M10 9h4"></path>
-                    <path d="M10 13h4"></path>
-                </svg>
+                @if(file_exists(public_path('uploads/logo.png')))
+                    <img src="{{ asset('uploads/logo.png') }}" alt="Logo">
+                @elseif(file_exists(public_path('images/icons/icon-192x192.png')))
+                    <img src="{{ asset('images/icons/icon-192x192.png') }}" alt="Logo">
+                @elseif(file_exists(public_path('img/logo-small.png')))
+                    <img src="{{ asset('img/logo-small.png') }}" alt="Logo">
+                @else
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 21h18"></path>
+                        <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path>
+                        <path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"></path>
+                        <path d="M10 9h4"></path>
+                        <path d="M10 13h4"></path>
+                    </svg>
+                @endif
             </div>
             
-            <div class="badge">Official App</div>
+            <div class="badge">Edric Tech</div>
             
             <h1>Innfusion Mobile</h1>
             <p>Get the complete Innfusion experience right on your device. Faster loading, offline support, and quick access.</p>
