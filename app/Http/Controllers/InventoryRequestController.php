@@ -234,6 +234,23 @@ class InventoryRequestController extends Controller
         }
     }
 
+    public function getPendingCount(Request $request)
+    {
+        $business_id = request()->session()->get('user.business_id');
+        $location_id = $request->input('location_id');
+
+        $query = InventoryRequest::where('business_id', $business_id)
+            ->whereIn('status', ['Approved', 'Partially Approved']);
+
+        if (!empty($location_id)) {
+            $query->where('destination_location_id', $location_id);
+        }
+
+        $count = $query->count();
+
+        return response()->json(['count' => $count]);
+    }
+
     public function create()
     {
         if (!auth()->user()->can('inventory_request.create')) {

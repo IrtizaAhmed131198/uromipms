@@ -400,6 +400,7 @@
                             if (incoming_stock_table) {
                                 incoming_stock_table.ajax.reload();
                             }
+                            updateIncomingStockBadge();
                         } else {
                             toastr.error(result.msg);
                             btn.prop('disabled', false);
@@ -411,6 +412,35 @@
                     }
                 });
             });
+
+            // Incoming Stock Badge Counter Functionality
+            function updateIncomingStockBadge() {
+                var location_id = $('input#location_id').val() || $('#select_location_id').val();
+                $.ajax({
+                    url: "{{ route('inventory-requests.pending-count') }}",
+                    data: { location_id: location_id },
+                    dataType: 'json',
+                    success: function(res) {
+                        var count = parseInt(res.count) || 0;
+                        if (count > 0) {
+                            $('#incoming_stock_badge').text(count).css('display', 'inline-block').show();
+                        } else {
+                            $('#incoming_stock_badge').hide().css('display', 'none');
+                        }
+                    }
+                });
+            }
+
+            // Initial badge load
+            updateIncomingStockBadge();
+
+            // Refresh when location changes
+            $(document).on('change', 'select#select_location_id, input#location_id', function() {
+                updateIncomingStockBadge();
+            });
+
+            // Auto-refresh badge every 30 seconds
+            setInterval(updateIncomingStockBadge, 30000);
 
         });
     </script>

@@ -156,8 +156,12 @@ col-xs-6
                     </button>
                 @endif
                 <button type="button" class="pos-custom-btn" data-toggle="modal" data-target="#incoming_stock_modal"
-                    id="btn-incoming-stock">
+                    id="btn-incoming-stock" style="position: relative;">
                     <i class="fas fa-truck-loading"></i> <span>Incoming<br>Stock</span>
+                    <span class="badge badge-danger incoming-stock-badge" id="incoming_stock_badge"
+                          style="display: none; position: absolute; top: -6px; right: -6px; background-color: #e74c3c; color: white; border-radius: 10px; padding: 3px 7px; font-size: 11px; font-weight: bold; border: 2px solid #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                        0
+                    </span>
                 </button>
                 <button type="button" class="pos-custom-btn" data-toggle="modal"
                     data-target="#inventory_request_modal" id="btn-inventory-request">

@@ -163,6 +163,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/api/barcode-lookup', [\App\Http\Controllers\PwaController::class, 'barcodeProductLookup'])->name('barcode.product-lookup');
 
     Route::get('inventory-requests/pending-acceptance', [InventoryRequestController::class, 'pendingAcceptance'])->name('inventory-requests.pending-acceptance');
+    Route::get('inventory-requests/pending-count', [InventoryRequestController::class, 'getPendingCount'])->name('inventory-requests.pending-count');
     Route::resource('inventory-requests', InventoryRequestController::class);
     Route::post('inventory-requests/{id}/approve', [InventoryRequestController::class, 'approve'])->name('inventory-requests.approve');
     Route::post('inventory-requests/{id}/accept', [InventoryRequestController::class, 'accept'])->name('inventory-requests.accept');
