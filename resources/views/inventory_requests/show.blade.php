@@ -55,6 +55,17 @@
                 </table>
             </div>
 
+            @if($inventoryRequest->rejection_reason)
+            <div class="row" style="margin-top: 15px;">
+                <div class="col-sm-12">
+                    <div class="alert alert-danger" style="border-radius: 8px;">
+                        <h4 style="margin-top: 0; font-weight: 600;"><i class="fas fa-ban"></i> Rejection Reason</h4>
+                        <p style="font-size: 15px; margin-bottom: 0;">{{$inventoryRequest->rejection_reason}}</p>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             @if($inventoryRequest->notes)
             <div class="row">
                 <div class="col-sm-12">

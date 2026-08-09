@@ -57,6 +57,7 @@ class InventoryRequestNotification extends Notification
             'status' => $this->inventoryRequest->status,
             'action' => $this->action,
             'actor_name' => $this->actorName,
+            'rejection_reason' => $this->inventoryRequest->rejection_reason,
             'source_location_id' => $this->inventoryRequest->source_location_id,
             'destination_location_id' => $this->inventoryRequest->destination_location_id,
             'created_at' => now()->toDateTimeString(),

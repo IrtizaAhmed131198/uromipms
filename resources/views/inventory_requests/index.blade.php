@@ -79,6 +79,7 @@
                         <th>Destination Location</th>
                         <th>Requested By</th>
                         <th>Status</th>
+                        <th>Rejection Reason</th>
                         <th>Created At</th>
                         <th>@lang('messages.action')</th>
                     </tr>
@@ -138,10 +139,11 @@
                 { data: 'destination_location', name: 'dl.name' },
                 { data: 'requested_by', name: 'requested_by', searchable: false },
                 { data: 'status', name: 'status' },
+                { data: 'rejection_reason', name: 'inventory_requests.rejection_reason' },
                 { data: 'created_at', name: 'created_at' },
                 { data: 'action', name: 'action', searchable: false, sortable: false }
             ],
-            order: [[8, 'desc']]
+            order: [[9, 'desc']]
         });
 
         $('#ir_product_id, #ir_category_id, #ir_source_location_id, #ir_destination_location_id, #ir_requested_by, #ir_approved_by, #ir_status').on('change', function() {

@@ -1339,7 +1339,8 @@ class Util
                         $msg = "Inventory Request #{$req_no} has been {$status} by {$actor}. Stock ready for acceptance!";
                         $icon_class = 'fas fa-check-circle bg-green';
                     } elseif ($action == 'rejected' || $status == 'Rejected') {
-                        $msg = "Inventory Request #{$req_no} was Rejected by {$actor}.";
+                        $reason_str = !empty($data['rejection_reason']) ? " Reason: " . $data['rejection_reason'] : "";
+                        $msg = "Inventory Request #{$req_no} was Rejected by {$actor}.{$reason_str}";
                         $icon_class = 'fas fa-times-circle bg-red';
                     } elseif (in_array($action, ['completed', 'accepted']) || in_array($status, ['Completed', 'Accepted'])) {
                         $msg = "Inventory Request #{$req_no} stock was Accepted & Transferred by {$actor}.";

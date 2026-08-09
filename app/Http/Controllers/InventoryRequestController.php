@@ -50,6 +50,7 @@ class InventoryRequestController extends Controller
                     'sl.name as source_location',
                     'dl.name as destination_location',
                     'inventory_requests.status',
+                    'inventory_requests.rejection_reason',
                     'inventory_requests.created_at',
                     DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as requested_by")
                 ]);
@@ -155,8 +156,14 @@ class InventoryRequestController extends Controller
                     }
                     return implode('<br>', $html);
                 })
+                ->addColumn('rejection_reason', function ($row) {
+                    if ($row->status == 'Rejected' && !empty($row->rejection_reason)) {
+                        return '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> ' . e($row->rejection_reason) . '</span>';
+                    }
+                    return !empty($row->rejection_reason) ? e($row->rejection_reason) : '-';
+                })
                 ->editColumn('created_at', '{{@format_datetime($created_at)}}')
-                ->rawColumns(['action', 'status', 'products', 'qty_requested', 'qty_approved'])
+                ->rawColumns(['action', 'status', 'products', 'qty_requested', 'qty_approved', 'rejection_reason'])
                 ->make(true);
         }
 
@@ -382,6 +389,8 @@ class InventoryRequestController extends Controller
                     InventoryRequestLine::where('id', $line_id)
                         ->update(['quantity_approved' => $qty]);
                 }
+            } else {
+                $inventoryRequest->rejection_reason = $request->input('rejection_reason');
             }
 
             $inventoryRequest->status = $status;

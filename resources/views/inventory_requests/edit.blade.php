@@ -56,10 +56,16 @@
                 <div class="col-sm-4">
                     <div class="form-group">
                         <label>Action:</label>
-                        <select name="status" class="form-control" required>
+                        <select name="status" id="inventory_request_status" class="form-control" required>
                             <option value="Approved">Approve Full / Partial</option>
                             <option value="Rejected">Reject Entire Request</option>
                         </select>
+                    </div>
+                </div>
+                <div class="col-sm-8" id="rejection_reason_group" style="display: none;">
+                    <div class="form-group">
+                        <label for="rejection_reason">Rejection Reason:</label>
+                        <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="2" placeholder="e.g. No stock available, reserved for other orders..."></textarea>
                     </div>
                 </div>
             </div>
@@ -75,4 +81,20 @@
     {!! Form::close() !!}
 </section>
 
+@endsection
+
+@section('javascript')
+<script>
+    $(document).ready(function() {
+        $('#inventory_request_status').change(function() {
+            if ($(this).val() === 'Rejected') {
+                $('#rejection_reason_group').slideDown();
+                $('#rejection_reason').attr('required', true);
+            } else {
+                $('#rejection_reason_group').slideUp();
+                $('#rejection_reason').removeAttr('required').val('');
+            }
+        });
+    });
+</script>
 @endsection
