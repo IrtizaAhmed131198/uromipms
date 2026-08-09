@@ -1290,7 +1290,11 @@ class Util
         $notifications_data = [];
         foreach ($notifications as $notification) {
             $data = $notification->data;
-            if (in_array($notification->type, [\App\Notifications\RecurringInvoiceNotification::class, \App\Notifications\RecurringExpenseNotification::class])) {
+            if (in_array($notification->type, [
+                \App\Notifications\RecurringInvoiceNotification::class, 
+                \App\Notifications\RecurringExpenseNotification::class,
+                \App\Notifications\InventoryRequestNotification::class
+            ])) {
                 $msg = '';
                 $icon_class = '';
                 $link = '';
@@ -1319,6 +1323,33 @@ class Util
                     );
                     $icon_class = 'fas fa-recycle bg-green';
                     $link = action([\App\Http\Controllers\ExpenseController::class, 'index']);
+                } elseif (
+                    $notification->type ==
+                    \App\Notifications\InventoryRequestNotification::class
+                ) {
+                    $req_no = $data['request_number'] ?? '';
+                    $actor = !empty($data['actor_name']) ? $data['actor_name'] : 'User';
+                    $action = $data['action'] ?? '';
+                    $status = $data['status'] ?? '';
+
+                    if ($action == 'created') {
+                        $msg = "New Inventory Request #{$req_no} created by {$actor}. Pending approval.";
+                        $icon_class = 'fas fa-file-import bg-yellow';
+                    } elseif (in_array($action, ['approved', 'partially_approved', 'Approved', 'Partially Approved']) || in_array($status, ['Approved', 'Partially Approved'])) {
+                        $msg = "Inventory Request #{$req_no} has been {$status} by {$actor}. Stock ready for acceptance!";
+                        $icon_class = 'fas fa-check-circle bg-green';
+                    } elseif ($action == 'rejected' || $status == 'Rejected') {
+                        $msg = "Inventory Request #{$req_no} was Rejected by {$actor}.";
+                        $icon_class = 'fas fa-times-circle bg-red';
+                    } elseif (in_array($action, ['completed', 'accepted']) || in_array($status, ['Completed', 'Accepted'])) {
+                        $msg = "Inventory Request #{$req_no} stock was Accepted & Transferred by {$actor}.";
+                        $icon_class = 'fas fa-boxes bg-green';
+                    } else {
+                        $msg = "Inventory Request #{$req_no} updated to {$status} by {$actor}.";
+                        $icon_class = 'fas fa-exchange-alt bg-blue';
+                    }
+
+                    $link = action([\App\Http\Controllers\InventoryRequestController::class, 'index']);
                 }
 
                 $notifications_data[] = [

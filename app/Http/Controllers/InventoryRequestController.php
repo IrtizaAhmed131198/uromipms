@@ -276,6 +276,9 @@ class InventoryRequestController extends Controller
 
             DB::commit();
 
+            // Send notification to involved users
+            $this->notifyInventoryRequestUsers($inventoryRequest, 'created');
+
             $output = ['success' => 1, 'msg' => __('Inventory request created successfully')];
         } catch (\Exception $e) {
             DB::rollBack();
@@ -318,6 +321,9 @@ class InventoryRequestController extends Controller
             }
 
             DB::commit();
+
+            // Send notification to involved users
+            $this->notifyInventoryRequestUsers($inventoryRequest, 'created');
 
             return response()->json(['success' => true, 'msg' => __('Inventory request created successfully')]);
         } catch (\Exception $e) {
@@ -366,6 +372,11 @@ class InventoryRequestController extends Controller
             $inventoryRequest->save();
 
             DB::commit();
+
+            // Send notification to requester & destination staff
+            $action = strtolower(str_replace(' ', '_', $status));
+            $this->notifyInventoryRequestUsers($inventoryRequest, $action);
+
             $output = ['success' => 1, 'msg' => __('Inventory request processed successfully')];
         } catch (\Exception $e) {
             DB::rollBack();
@@ -488,11 +499,79 @@ class InventoryRequestController extends Controller
             }
 
             DB::commit();
+
+            // Send notification to both requester and approver
+            $this->notifyInventoryRequestUsers($inventoryRequest, 'completed');
+
             return ['success' => 1, 'msg' => __('Stock accepted and transferred successfully')];
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
             return ['success' => 0, 'msg' => __('messages.something_went_wrong')];
+        }
+    }
+
+    /**
+     * Helper to notify involved users on Inventory Request actions
+     *
+     * @param \App\InventoryRequest $inventoryRequest
+     * @param string $action ('created', 'approved', 'partially_approved', 'rejected', 'completed')
+     */
+    private function notifyInventoryRequestUsers($inventoryRequest, $action)
+    {
+        try {
+            $currentUser = auth()->user();
+            $actorName = $currentUser ? $currentUser->user_full_name : 'System';
+            $business_id = $inventoryRequest->business_id;
+
+            $recipientIds = collect();
+
+            if ($action == 'created') {
+                // Notify admins/approvers at the source location
+                $allUsers = User::where('business_id', $business_id)->get();
+                foreach ($allUsers as $user) {
+                    if ($user->can('inventory_request.approve') || $user->can('admin') || $user->user_type == 'user') {
+                        $permitted = $user->permitted_locations($business_id);
+                        if ($permitted == 'all' || (is_array($permitted) && in_array($inventoryRequest->source_location_id, $permitted))) {
+                            $recipientIds->push($user->id);
+                        }
+                    }
+                }
+            } elseif (in_array($action, ['approved', 'partially_approved', 'rejected'])) {
+                // Notify requester
+                if (!empty($inventoryRequest->requested_by)) {
+                    $recipientIds->push($inventoryRequest->requested_by);
+                }
+                // Notify destination location staff who accept stock
+                $allUsers = User::where('business_id', $business_id)->get();
+                foreach ($allUsers as $user) {
+                    if ($user->can('inventory_request.accept') || $user->can('admin')) {
+                        $permitted = $user->permitted_locations($business_id);
+                        if ($permitted == 'all' || (is_array($permitted) && in_array($inventoryRequest->destination_location_id, $permitted))) {
+                            $recipientIds->push($user->id);
+                        }
+                    }
+                }
+            } elseif (in_array($action, ['completed', 'accepted'])) {
+                // Notify both requester and approver
+                if (!empty($inventoryRequest->requested_by)) {
+                    $recipientIds->push($inventoryRequest->requested_by);
+                }
+                if (!empty($inventoryRequest->approved_by)) {
+                    $recipientIds->push($inventoryRequest->approved_by);
+                }
+            }
+
+            $recipientIds = $recipientIds->unique();
+
+            foreach ($recipientIds as $userId) {
+                $recipient = User::find($userId);
+                if ($recipient) {
+                    $recipient->notify(new \App\Notifications\InventoryRequestNotification($inventoryRequest, $action, $actorName));
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::emergency("InventoryRequest Notification Error File:" . $e->getFile() . " Line:" . $e->getLine() . " Message:" . $e->getMessage());
         }
     }
 }
