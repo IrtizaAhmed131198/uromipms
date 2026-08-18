@@ -226,7 +226,7 @@
 						@lang('sale.product') @show_tooltip(__('lang_v1.tooltip_sell_product_column'))
 					</th>
 					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2">
-						@lang('sale.price_inc_tax')
+						@lang('sale.unit_price')
 					</th>
 					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-3">
 						@lang('sale.qty')
