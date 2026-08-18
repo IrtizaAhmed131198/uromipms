@@ -233,7 +233,7 @@
 							@lang('restaurant.service_staff')
 						</th>
 					@endif
-					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2 {{$hide_tax}}">
+					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2">
 						@lang('sale.price_inc_tax')
 					</th>
 					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2">
