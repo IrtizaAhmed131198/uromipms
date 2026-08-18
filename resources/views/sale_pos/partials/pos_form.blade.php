@@ -219,7 +219,7 @@
 				$hide_tax = 'hide';
 			}
 		@endphp
-		<table class="table table-condensed table-bordered table-striped table-responsive" id="pos_table">
+		<table class="table table-condensed table-bordered table-striped table-responsive" id="pos_table" style="margin-bottom: 0;">
 			<thead>
 				<tr>
 					<th class="tex-center tw-text-sm md:!tw-text-base tw-font-bold @if(!empty($pos_settings['inline_service_staff'])) col-md-3 @else col-md-4 @endif">	
@@ -244,5 +244,43 @@
 			</thead>
 			<tbody></tbody>
 		</table>
+		
+		<div id="empty_cart_msg" class="text-center" style="padding: 60px 20px; color: #6c757d;">
+            <i class="fa fa-shopping-cart fa-4x" style="color: #d1d3e2; margin-bottom: 15px;"></i>
+            <h4 style="font-weight: 700; color: #5a5c69; margin-bottom: 5px;">Your cart is empty</h4>
+            <p style="font-size: 14px;">Scan a barcode, tap a product file, or type to search</p>
+        </div>
 	</div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var posTableBody = document.querySelector('#pos_table tbody');
+    var emptyCartMsg = document.getElementById('empty_cart_msg');
+    var posTableHeader = document.querySelector('#pos_table thead');
+    var posFormTotals = document.querySelector('.pos_form_totals');
+
+    function toggleEmptyCartState() {
+        if (posTableBody.children.length === 0) {
+            if (emptyCartMsg) emptyCartMsg.style.display = 'block';
+            if (posTableHeader) posTableHeader.style.display = 'none';
+            if (posFormTotals) posFormTotals.style.display = 'none';
+        } else {
+            if (emptyCartMsg) emptyCartMsg.style.display = 'none';
+            if (posTableHeader) posTableHeader.style.display = '';
+            if (posFormTotals) posFormTotals.style.display = '';
+        }
+    }
+
+    if (posTableBody) {
+        var observer = new MutationObserver(function(mutations) {
+            toggleEmptyCartState();
+        });
+        
+        observer.observe(posTableBody, { childList: true });
+        
+        // Initial check
+        toggleEmptyCartState();
+    }
+});
+</script>
