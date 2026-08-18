@@ -225,6 +225,9 @@
 					<th class="tex-center tw-text-sm md:!tw-text-base tw-font-bold @if(!empty($pos_settings['inline_service_staff'])) col-md-3 @else col-md-4 @endif">	
 						@lang('sale.product') @show_tooltip(__('lang_v1.tooltip_sell_product_column'))
 					</th>
+					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2">
+						@lang('sale.price_inc_tax')
+					</th>
 					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-3">
 						@lang('sale.qty')
 					</th>
@@ -233,9 +236,6 @@
 							@lang('restaurant.service_staff')
 						</th>
 					@endif
-					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2">
-						@lang('sale.price_inc_tax')
-					</th>
 					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2">
 						@lang('sale.subtotal')
 					</th>
