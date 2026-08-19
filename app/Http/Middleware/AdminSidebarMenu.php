@@ -738,6 +738,13 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->segment(2) == 'sales-representative-report']
                             );
                         }
+                        if (auth()->user()->can('sales_representative.view') || auth()->user()->can('purchase_n_sell_report.view') || auth()->user()->can('user.view')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\ReportController::class, 'getStaffReferralBonusReport']),
+                                'Staff Referral Bonus Report',
+                                ['icon' => '', 'active' => request()->segment(2) == 'staff-referral-bonus']
+                            );
+                        }
                         if (auth()->user()->can('purchase_n_sell_report.view') && in_array('tables', $enabled_modules)) {
                             $sub->url(
                                 action([\App\Http\Controllers\ReportController::class, 'getTableReport']),

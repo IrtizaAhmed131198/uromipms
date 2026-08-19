@@ -73,6 +73,7 @@ class ContactUtil extends Util
         $contact = Contact::where('contacts.id', $contact_id)
                     ->where('contacts.business_id', $business_id)
                     ->leftjoin('transactions AS t', 'contacts.id', '=', 't.contact_id')
+                    ->leftjoin('business_locations AS bl', 'contacts.business_location_id', '=', 'bl.id')
                     ->with(['business'])
                     ->select(
                         DB::raw("SUM(IF(t.type = 'purchase', final_total, 0)) as total_purchase"),
@@ -81,11 +82,15 @@ class ContactUtil extends Util
                         DB::raw("SUM(IF(t.type = 'sell' AND t.status = 'final', (SELECT SUM(IF(is_return = 1,-1*amount,amount)) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)) as invoice_received"),
                         DB::raw("SUM(IF(t.type = 'opening_balance', final_total, 0)) as opening_balance"),
                         DB::raw("SUM(IF(t.type = 'opening_balance', (SELECT SUM(amount) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)) as opening_balance_paid"),
+                        DB::raw("COUNT(IF(t.type = 'sell' AND t.status = 'final', t.id, NULL)) as total_sell_count"),
+                        DB::raw("MAX(IF(t.type = 'sell' AND t.status = 'final', t.transaction_date, NULL)) as last_transaction_date"),
+                        'bl.name as registered_branch_name',
                         'contacts.*'
                     )->first();
 
         return $contact;
     }
+
 
     public function createNewContact($input)
     {

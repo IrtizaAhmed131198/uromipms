@@ -75,6 +75,17 @@
               </div>
           </div>
         </div>
+        <div class="col-md-4 customer_fields">
+            <div class="form-group">
+                {!! Form::label('business_location_id', __('lang_v1.business_location') . ':') !!}
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="fa fa-map-marker"></i>
+                    </span>
+                    {!! Form::select('business_location_id', $business_locations ?? [], $contact->business_location_id, ['class' => 'form-control select2', 'placeholder' => __('messages.please_select')]); !!}
+                </div>
+            </div>
+        </div>
         <div class="clearfix customer_fields"></div>
         <div class="col-md-4 business" @if($contact->contact_type == 'individual' || empty($contact->contact_type)) style="display: none;"  @endif>
           <div class="form-group">

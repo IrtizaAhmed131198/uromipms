@@ -4045,4 +4045,140 @@ class ReportController extends Controller
 
         return view('report.gst_purchase_report')->with(compact('suppliers', 'taxes'));
     }
+
+    /**
+     * Shows staff referral bonus report
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getStaffReferralBonusReport(Request $request)
+    {
+        if (! auth()->user()->can('purchase_n_sell_report.view') && ! auth()->user()->can('sales_representative.view') && ! auth()->user()->can('user.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        if ($request->ajax()) {
+            $staff_id = $request->get('staff_id');
+            $location_id = $request->get('location_id');
+            $year = $request->get('year');
+            $month = $request->get('month');
+            $start_date = $request->get('start_date');
+            $end_date = $request->get('end_date');
+
+            $query = Transaction::where('transactions.business_id', $business_id)
+                ->where('transactions.type', 'sell')
+                ->where('transactions.status', 'final')
+                ->whereNotNull('transactions.referral_staff_user_id')
+                ->join('users as u', 'transactions.referral_staff_user_id', '=', 'u.id');
+
+            if (!empty($staff_id)) {
+                $query->where('transactions.referral_staff_user_id', $staff_id);
+            }
+
+            if (!empty($location_id)) {
+                $query->where('transactions.location_id', $location_id);
+            }
+
+            if (!empty($start_date) && !empty($end_date)) {
+                $query->whereDate('transactions.transaction_date', '>=', $start_date)
+                      ->whereDate('transactions.transaction_date', '<=', $end_date);
+            } elseif (!empty($year)) {
+                $query->whereYear('transactions.transaction_date', $year);
+                if (!empty($month)) {
+                    $query->whereMonth('transactions.transaction_date', $month);
+                }
+            }
+
+            $query->select([
+                'u.id as user_id',
+                DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as staff_name"),
+                'u.referral_code',
+                DB::raw('COUNT(transactions.id) as total_referred_sales'),
+                DB::raw('SUM(transactions.final_total) as total_sales_value'),
+                DB::raw('SUM(transactions.referral_standard_commission) as total_standard_commission'),
+                DB::raw('SUM(transactions.referral_extra_profit_commission) as total_extra_profit_commission'),
+                DB::raw('SUM(transactions.referral_total_commission) as grand_total_bonus')
+            ])
+            ->groupBy('u.id', 'u.surname', 'u.first_name', 'u.last_name', 'u.referral_code')
+            ->orderBy('grand_total_bonus', 'desc');
+
+            return Datatables::of($query)
+                ->editColumn('staff_name', function ($row) {
+                    return '<strong>' . $row->staff_name . '</strong>';
+                })
+                ->editColumn('referral_code', function ($row) {
+                    return !empty($row->referral_code)
+                        ? '<span class="badge" style="background:#10b981; font-size:12px; padding:4px 8px; border-radius:4px;">' . $row->referral_code . '</span>'
+                        : '<span class="text-muted">—</span>';
+                })
+                ->editColumn('total_referred_sales', function ($row) {
+                    return '<span class="label label-info" style="font-size:12px; padding:3px 8px;">' . $row->total_referred_sales . '</span>';
+                })
+                ->editColumn('total_sales_value', function ($row) {
+                    return '<span class="display_currency" data-currency_symbol="true">' . $this->transactionUtil->num_f($row->total_sales_value, true) . '</span>';
+                })
+                ->editColumn('total_standard_commission', function ($row) {
+                    return '<span class="display_currency text-primary" data-currency_symbol="true" style="font-weight:600;">' . $this->transactionUtil->num_f($row->total_standard_commission, true) . '</span>';
+                })
+                ->editColumn('total_extra_profit_commission', function ($row) {
+                    return '<span class="display_currency text-warning" data-currency_symbol="true" style="font-weight:600;">' . $this->transactionUtil->num_f($row->total_extra_profit_commission, true) . '</span>';
+                })
+                ->editColumn('grand_total_bonus', function ($row) {
+                    return '<strong class="display_currency text-success" data-currency_symbol="true" style="font-size:14px;">' . $this->transactionUtil->num_f($row->grand_total_bonus, true) . '</strong>';
+                })
+                ->addColumn('action', function ($row) {
+                    return '<button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary btn-modal" data-href="' . action([\App\Http\Controllers\ReportController::class, 'getStaffReferralBonusDetails'], [$row->user_id]) . '" data-container=".referral_details_modal"><i class="fa fa-list"></i> ' . __('messages.view') . '</button>';
+                })
+                ->rawColumns(['staff_name', 'referral_code', 'total_referred_sales', 'total_sales_value', 'total_standard_commission', 'total_extra_profit_commission', 'grand_total_bonus', 'action'])
+                ->make(true);
+        }
+
+        $business_locations = BusinessLocation::forDropdown($business_id, true);
+        $staff_members = User::forDropdown($business_id, false);
+
+        $years = [];
+        $current_year = (int) date('Y');
+        for ($y = $current_year + 1; $y >= 2020; $y--) {
+            $years[$y] = (string) $y;
+        }
+
+        $months = [
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+
+        return view('report.staff_referral_bonus')
+            ->with(compact('business_locations', 'staff_members', 'years', 'months'));
+    }
+
+    /**
+     * Shows modal with detailed list of sales referred by specific staff
+     */
+    public function getStaffReferralBonusDetails(Request $request, $user_id)
+    {
+        $business_id = $request->session()->get('user.business_id');
+
+        $staff = User::where('business_id', $business_id)->findOrFail($user_id);
+
+        $sales = Transaction::where('transactions.business_id', $business_id)
+            ->where('transactions.referral_staff_user_id', $user_id)
+            ->where('transactions.type', 'sell')
+            ->where('transactions.status', 'final')
+            ->leftJoin('contacts', 'transactions.contact_id', '=', 'contacts.id')
+            ->leftJoin('business_locations', 'transactions.location_id', '=', 'business_locations.id')
+            ->select([
+                'transactions.*',
+                'contacts.name as customer_name',
+                'business_locations.name as location_name'
+            ])
+            ->orderBy('transactions.transaction_date', 'desc')
+            ->get();
+
+        return view('report.partials.staff_referral_details_modal')
+            ->with(compact('staff', 'sales'));
+    }
 }

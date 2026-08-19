@@ -18,6 +18,24 @@
 
     <!-- Main content -->
     <section class="content">
+        @if ($type == 'customer')
+            <div class="nav-tabs-custom">
+                <ul class="nav nav-tabs">
+                    <li class="active">
+                        <a href="#all_customers_tab" data-toggle="tab" aria-expanded="true">
+                            <i class="fas fa-users"></i> @lang('lang_v1.all_customers')
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#customer_rankings_tab" data-toggle="tab" aria-expanded="false" id="tab_customer_rankings">
+                            <i class="fas fa-trophy" style="color: #f39c12;"></i> <strong>@lang('lang_v1.customer_rankings') (@lang('lang_v1.top_customers'))</strong>
+                        </a>
+                    </li>
+                </ul>
+                <div class="tab-content" style="padding: 15px 0;">
+                    <div class="tab-pane active" id="all_customers_tab">
+        @endif
+
         @component('components.filters', ['title' => __('report.filters')])
             @if ($type == 'customer')
                 <div class="col-md-3">
@@ -225,7 +243,7 @@
                             @elseif($type == 'customer')
                                 @if ($reward_enabled)
                                     colspan="9"
-                                @else
+                                 @else
                                     colspan="8" @endif
                                     @endif>
                                     <strong>
@@ -251,6 +269,73 @@
             @endif
         @endcomponent
 
+        @if ($type == 'customer')
+                    </div>
+                    <!-- /#all_customers_tab -->
+
+                    <!-- #customer_rankings_tab -->
+                    <div class="tab-pane" id="customer_rankings_tab">
+                        <div class="box box-solid" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                            <div class="box-body" style="padding: 20px;">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="ranking_year_filter"><i class="fa fa-calendar"></i> @lang('lang_v1.ranking_year'):</label>
+                                            {!! Form::select(
+                                                'ranking_year_filter',
+                                                ['' => __('lang_v1.all')] + ($years ?? []),
+                                                date('Y'),
+                                                ['class' => 'form-control select2', 'id' => 'ranking_year_filter', 'style' => 'width: 100%;']
+                                            ) !!}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="ranking_location_filter"><i class="fa fa-building"></i> @lang('lang_v1.business_location'):</label>
+                                            {!! Form::select(
+                                                'ranking_location_filter',
+                                                $business_locations ?? [],
+                                                null,
+                                                ['class' => 'form-control select2', 'id' => 'ranking_location_filter', 'style' => 'width: 100%;', 'placeholder' => __('lang_v1.all')]
+                                            ) !!}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="callout callout-info" style="margin-bottom: 0; padding: 10px; border-radius: 8px; background-color: #f0f7ff !important; border-left-color: #3b82f6 !important; color: #1e3a8a !important;">
+                                            <h5 style="font-weight: 700; margin-top: 0; margin-bottom: 4px;"><i class="fa fa-trophy" style="color: #f59e0b;"></i> @lang('lang_v1.top_customers')</h5>
+                                            <p style="font-size: 12px; margin-bottom: 0;">Ranked by total purchases in descending order for the selected year.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="box box-primary" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                            <div class="box-body" style="padding: 20px;">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped table-hover" id="customer_rankings_table" style="width: 100%;">
+                                        <thead style="background-color: #f8fafc;">
+                                            <tr>
+                                                <th class="text-center" style="width: 80px;">@lang('lang_v1.rank')</th>
+                                                <th>@lang('user.name')</th>
+                                                <th class="text-right">@lang('lang_v1.total_purchase_amount')</th>
+                                                <th class="text-center">@lang('lang_v1.number_of_purchases')</th>
+                                                <th class="text-center">@lang('lang_v1.last_purchase_date')</th>
+                                                <th>@lang('lang_v1.business_location')</th>
+                                                <th class="text-center">@lang('messages.action')</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /#customer_rankings_tab -->
+                </div>
+            </div>
+        @endif
+
         <div class="modal fade contact_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
         </div>
         <div class="modal fade pay_contact_due_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
@@ -260,6 +345,55 @@
     <!-- /.content -->
 @stop
 @section('javascript')
+    @if ($type == 'customer')
+        <script type="text/javascript">
+            $(document).ready(function() {
+                var customer_rankings_table = null;
+
+                function loadCustomerRankings() {
+                    if (customer_rankings_table === null) {
+                        customer_rankings_table = $('#customer_rankings_table').DataTable({
+                            processing: true,
+                            serverSide: true,
+                            aaSorting: [[2, 'desc']],
+                            ajax: {
+                                url: "{{ action([\App\Http\Controllers\ContactController::class, 'getCustomerRankings']) }}",
+                                data: function(d) {
+                                    d.year = $('#ranking_year_filter').val();
+                                    d.location_id = $('#ranking_location_filter').val();
+                                }
+                            },
+                            columns: [
+                                { data: 'rank', name: 'rank', searchable: false, orderable: false, className: 'text-center' },
+                                { data: 'name', name: 'contacts.name' },
+                                { data: 'total_purchase_amount', name: 'total_purchase_amount', searchable: false, className: 'text-right' },
+                                { data: 'number_of_purchases', name: 'number_of_purchases', searchable: false, className: 'text-center' },
+                                { data: 'last_purchase_date', name: 'last_purchase_date', searchable: false, className: 'text-center' },
+                                { data: 'registered_branch_name', name: 'bl.name' },
+                                { data: 'action', name: 'action', searchable: false, orderable: false, className: 'text-center' }
+                            ],
+                            fnDrawCallback: function(oSettings) {
+                                __currency_convert_recursively($('#customer_rankings_table'));
+                            }
+                        });
+                    } else {
+                        customer_rankings_table.ajax.reload();
+                    }
+                }
+
+                $('a[href="#customer_rankings_tab"]').on('shown.bs.tab', function(e) {
+                    loadCustomerRankings();
+                });
+
+                $(document).on('change', '#ranking_year_filter, #ranking_location_filter', function() {
+                    if (customer_rankings_table !== null) {
+                        customer_rankings_table.ajax.reload();
+                    }
+                });
+            });
+        </script>
+    @endif
+
     @if (!empty($api_key))
         <script>
             // This example adds a search box to a map, using the Google Place Autocomplete

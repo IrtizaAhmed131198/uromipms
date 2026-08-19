@@ -3402,4 +3402,42 @@ class SellPosController extends Controller
             return $output;
         }
     }
+
+    /**
+     * Validate staff referral code via AJAX
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    public function validateReferralCode(Request $request)
+    {
+        $business_id = $request->session()->get('user.business_id');
+        $code = trim($request->input('code'));
+
+        if (empty($code)) {
+            return [
+                'is_valid' => false,
+                'msg' => __('messages.something_went_wrong'),
+            ];
+        }
+
+        $user = User::where('business_id', $business_id)
+                    ->where('referral_code', $code)
+                    ->first();
+
+        if (!empty($user)) {
+            $name = $user->user_full_name ?? ($user->first_name . ' ' . $user->last_name);
+            return [
+                'is_valid' => true,
+                'user_id' => $user->id,
+                'name' => $name,
+                'msg' => 'Staff Verified: ' . $name . ' (' . $code . ')',
+            ];
+        } else {
+            return [
+                'is_valid' => false,
+                'msg' => 'Invalid staff referral code',
+            ];
+        }
+    }
 }

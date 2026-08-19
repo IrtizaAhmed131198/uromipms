@@ -23,6 +23,30 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-sm-4">
+            <div class="form-group">
+                {!! Form::label('default_referral_commission_percent', 'Staff Referral Commission (%):') !!} @show_tooltip('Default commission % on sales for referring staff.')
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="fa fa-percent"></i>
+                    </span>
+                    {!! Form::text('default_referral_commission_percent', @num_format($business->default_referral_commission_percent), ['class' => 'form-control input_number']); !!}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="form-group">
+                {!! Form::label('default_extra_profit_commission_percent', 'Extra Profit Commission (%):') !!} @show_tooltip('Commission % from extra profit when items are sold above predefined selling price.')
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="fa fa-percent"></i>
+                    </span>
+                    {!! Form::text('default_extra_profit_commission_percent', @num_format($business->default_extra_profit_commission_percent), ['class' => 'form-control input_number']); !!}
+                </div>
+            </div>
+        </div>
         <!-- <div class="clearfix"></div> -->
 
         {{--<div class="col-sm-12 hide">

@@ -35,6 +35,7 @@
                             <th>@lang( 'user.name' )</th>
                             <th>@lang( 'user.role' )</th>
                             <th>@lang( 'business.email' )</th>
+                            <th>Staff Referral Code</th>
                             <th>@lang( 'messages.action' )</th>
                         </tr>
                     </thead>
@@ -60,7 +61,7 @@
                     fixedHeader:false,
                     ajax: '/users',
                     columnDefs: [ {
-                        "targets": [4],
+                        "targets": [5],
                         "orderable": false,
                         "searchable": false
                     } ],
@@ -69,6 +70,7 @@
                         {"data":"full_name"},
                         {"data":"role"},
                         {"data":"email"},
+                        {"data":"referral_code"},
                         {"data":"action"}
                     ]
                 });

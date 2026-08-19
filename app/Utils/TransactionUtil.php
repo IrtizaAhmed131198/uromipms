@@ -23,6 +23,7 @@ use App\Transaction;
 use App\TransactionPayment;
 use App\TransactionSellLine;
 use App\TransactionSellLinesPurchaseLines;
+use App\User;
 use App\Variation;
 use App\VariationLocationDetails;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +57,15 @@ class TransactionUtil extends Util
             $pay_term_number = $contact->pay_term_number;
             $pay_term_type = $contact->pay_term_type;
         }
+        $referral_code = !empty($input['referral_code']) ? trim($input['referral_code']) : null;
+        $referral_staff_user_id = null;
+        if (!empty($referral_code)) {
+            $referral_staff = User::where('business_id', $business_id)->where('referral_code', $referral_code)->first();
+            if ($referral_staff) {
+                $referral_staff_user_id = $referral_staff->id;
+            }
+        }
+
         $transaction = Transaction::create([
             'business_id' => $business_id,
             'location_id' => $input['location_id'],
@@ -63,6 +73,8 @@ class TransactionUtil extends Util
             'status' => $input['status'],
             'sub_status' => !empty($input['sub_status']) ? $input['sub_status'] : null,
             'contact_id' => $input['contact_id'],
+            'referral_code' => $referral_code,
+            'referral_staff_user_id' => $referral_staff_user_id,
             'customer_group_id' => !empty($input['customer_group_id']) ? $input['customer_group_id'] : null,
             'invoice_no' => $invoice_no,
             'ref_no' => '',
@@ -186,10 +198,21 @@ class TransactionUtil extends Util
             $pay_term_type = $contact->pay_term_type;
         }
 
+        $referral_code = !empty($input['referral_code']) ? trim($input['referral_code']) : null;
+        $referral_staff_user_id = null;
+        if (!empty($referral_code)) {
+            $referral_staff = User::where('business_id', $business_id)->where('referral_code', $referral_code)->first();
+            if ($referral_staff) {
+                $referral_staff_user_id = $referral_staff->id;
+            }
+        }
+
         $update_date = [
             'status' => $input['status'],
             'invoice_no' => !empty($input['invoice_no']) ? $input['invoice_no'] : $invoice_no,
             'contact_id' => $input['contact_id'],
+            'referral_code' => $referral_code,
+            'referral_staff_user_id' => $referral_staff_user_id,
             'customer_group_id' => $input['customer_group_id'],
             'total_before_tax' => $invoice_total['total_before_tax'],
             'tax_id' => $input['tax_rate_id'],
@@ -485,11 +508,71 @@ class TransactionUtil extends Util
             $transaction->sell_lines()->saveMany($modifiers_formatted);
         }
 
+        // Calculate and save staff referral commissions
+        $this->calculateAndSetReferralCommission($transaction);
+
         if ($return_deleted) {
             return $deleted_lines;
         }
 
         return true;
+    }
+
+    /**
+     * Calculate and save standard + extra-profit referral commission for referring staff
+     *
+     * @param \App\Transaction $transaction
+     * @return void
+     */
+    public function calculateAndSetReferralCommission($transaction)
+    {
+        if (empty($transaction) || (empty($transaction->referral_staff_user_id) && empty($transaction->referral_code))) {
+            return;
+        }
+
+        $business = Business::find($transaction->business_id);
+        if (!$business) {
+            return;
+        }
+
+        $std_percent = (float) ($business->default_referral_commission_percent ?? 0);
+        $extra_profit_percent = (float) ($business->default_extra_profit_commission_percent ?? 0);
+
+        // 1. Standard Referral Commission on sale total
+        $std_commission = 0;
+        if ($std_percent > 0) {
+            $std_commission = ($transaction->final_total * $std_percent) / 100;
+        }
+
+        // 2. Extra Profit Commission on items sold above predefined selling price
+        $extra_profit_commission = 0;
+        if ($extra_profit_percent > 0) {
+            $total_extra_profit = 0;
+            $lines = TransactionSellLine::where('transaction_id', $transaction->id)
+                ->with('variations')
+                ->get();
+
+            foreach ($lines as $line) {
+                if (!empty($line->variations)) {
+                    $default_price = (float) $line->variations->sell_price_inc_tax;
+                    $sold_price = (float) $line->unit_price_inc_tax;
+                    if ($sold_price > $default_price) {
+                        $diff = $sold_price - $default_price;
+                        $total_extra_profit += ($diff * (float) $line->quantity);
+                    }
+                }
+            }
+
+            if ($total_extra_profit > 0) {
+                $extra_profit_commission = ($total_extra_profit * $extra_profit_percent) / 100;
+            }
+        }
+
+        Transaction::where('id', $transaction->id)->update([
+            'referral_standard_commission' => $std_commission,
+            'referral_extra_profit_commission' => $extra_profit_commission,
+            'referral_total_commission' => $std_commission + $extra_profit_commission,
+        ]);
     }
 
     private function updateSalesOrderLine($so_line_id, $new_qty, $old_qty = 0)

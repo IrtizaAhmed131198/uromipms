@@ -34,10 +34,16 @@
         </div>
       </div>
       <div class="clearfix"></div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="form-group">
           {!! Form::label('email', __( 'business.email' ) . ':*') !!}
             {!! Form::text('email', null, ['class' => 'form-control', 'required', 'placeholder' => __( 'business.email' ) ]); !!}
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="form-group">
+          {!! Form::label('referral_code', 'Staff Referral Code:') !!} @show_tooltip('Unique code used for staff referral commissions. Leave blank to auto-generate.')
+          {!! Form::text('referral_code', null, ['class' => 'form-control', 'placeholder' => 'Auto-generated if empty' ]); !!}
         </div>
       </div>
 

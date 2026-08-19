@@ -1648,6 +1648,10 @@ class Util
 
         $user_details['bank_details'] = ! empty($user_details['bank_details']) ? json_encode($user_details['bank_details']) : null;
 
+        $user_details['referral_code'] = !empty($request->input('referral_code'))
+            ? trim($request->input('referral_code'))
+            : $this->generateStaffReferralCode($business_id);
+
         $user_details['password'] = $user_details['allow_login'] ? Hash::make($user_details['password']) : null;
 
         if ($user_details['allow_login']) {
@@ -1856,4 +1860,18 @@ class Util
         return ['start' => $start, 'end' => $end];
     }
 
+    /**
+     * Generate unique referral code for a staff member
+     *
+     * @param int|null $business_id
+     * @return string
+     */
+    public function generateStaffReferralCode($business_id = null)
+    {
+        do {
+            $code = 'REF-' . strtoupper(\Illuminate\Support\Str::random(6));
+        } while (\App\User::where('referral_code', $code)->exists());
+
+        return $code;
+    }
 }

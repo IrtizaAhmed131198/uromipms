@@ -44,3 +44,19 @@
         {{ @format_date($contact->dob) }}
     </p>
 @endif
+@if(!empty($contact->registered_branch_name))
+    <strong><i class="fa fa-building margin-r-5"></i> @lang('lang_v1.business_location')</strong>
+    <p class="text-muted">
+        {{ $contact->registered_branch_name }}
+    </p>
+@endif
+@if(!empty($contact->email))
+    <strong><i class="fa fa-envelope margin-r-5"></i> @lang('business.email')</strong>
+    <p class="text-muted">
+        {{ $contact->email }}
+    </p>
+@endif
+<strong><i class="fa fa-calendar-plus margin-r-5"></i> @lang('lang_v1.registered_on')</strong>
+<p class="text-muted">
+    {{ @format_date($contact->created_at) }}
+</p>

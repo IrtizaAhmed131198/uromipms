@@ -384,6 +384,10 @@ class BusinessController extends Controller
 
             $business_details['default_sales_discount'] = ! empty($business_details['default_sales_discount']) ? $this->businessUtil->num_uf($business_details['default_sales_discount']) : 0;
 
+            $business_details['default_referral_commission_percent'] = ! empty($request->input('default_referral_commission_percent')) ? $this->businessUtil->num_uf($request->input('default_referral_commission_percent')) : 0;
+
+            $business_details['default_extra_profit_commission_percent'] = ! empty($request->input('default_extra_profit_commission_percent')) ? $this->businessUtil->num_uf($request->input('default_extra_profit_commission_percent')) : 0;
+
             if (! empty($business_details['start_date'])) {
                 $business_details['start_date'] = $this->businessUtil->uf_date($business_details['start_date']);
             }

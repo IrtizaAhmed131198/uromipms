@@ -439,8 +439,40 @@
                 updateIncomingStockBadge();
             });
 
-            // Auto-refresh badge every 30 seconds
-            setInterval(updateIncomingStockBadge, 30000);
+            // Staff Referral Code Validation
+            function checkReferralCode() {
+                var code = $('#staff_referral_code').val();
+                if (typeof code === 'undefined') return;
+                code = code.trim();
+                if (code === '') {
+                    $('#referral_code_msg').hide().text('');
+                    return;
+                }
+                $.ajax({
+                    url: "{{ action([\App\Http\Controllers\SellPosController::class, 'validateReferralCode']) }}",
+                    data: { code: code },
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.is_valid) {
+                            $('#referral_code_msg').show().css('color', '#10b981').html('<i class="fa fa-check-circle"></i> ' + res.msg);
+                        } else {
+                            $('#referral_code_msg').show().css('color', '#ef4444').html('<i class="fa fa-times-circle"></i> ' + res.msg);
+                        }
+                    }
+                });
+            }
+
+            $(document).on('click', '#btn_validate_referral_code', function() {
+                checkReferralCode();
+            });
+
+            $(document).on('blur', '#staff_referral_code', function() {
+                checkReferralCode();
+            });
+
+            if ($('#staff_referral_code').val() && $('#staff_referral_code').val().trim() !== '') {
+                checkReferralCode();
+            }
 
         });
     </script>

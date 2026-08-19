@@ -91,6 +91,23 @@
 			</div>
 		</div>
 	@endif
+
+	<div class="col-md-4 col-sm-6">
+		<div class="form-group" style="margin-bottom: 5px;">
+			<div class="input-group">
+				<span class="input-group-addon" title="Staff Referral Code">
+					<i class="fa fa-user-tag text-primary"></i>
+				</span>
+				{!! Form::text('referral_code', !empty($transaction->referral_code) ? $transaction->referral_code : null, ['class' => 'form-control', 'id' => 'staff_referral_code', 'placeholder' => 'Staff Referral Code']); !!}
+				<span class="input-group-btn">
+					<button type="button" class="btn btn-default text-primary" id="btn_validate_referral_code" title="Verify Referral Code">
+						<i class="fa fa-check"></i>
+					</button>
+				</span>
+			</div>
+			<small id="referral_code_msg" style="display:none; font-weight:600; padding:2px 5px;"></small>
+		</div>
+	</div>
 	@if(config('constants.enable_sell_in_diff_currency') == true)
 		<div class="col-md-4 col-sm-6">
 			<div class="form-group">

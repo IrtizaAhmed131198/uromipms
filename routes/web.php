@@ -191,6 +191,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/contacts/import', [ContactController::class, 'postImportContacts']);
     Route::post('/contacts/check-contacts-id', [ContactController::class, 'checkContactId']);
     Route::get('/contacts/customers', [ContactController::class, 'getCustomers']);
+    Route::get('/contacts/customer-rankings', [ContactController::class, 'getCustomerRankings']);
     Route::resource('contacts', ContactController::class);
 
     Route::get('taxonomies-ajax-index-page', [TaxonomyController::class, 'getTaxonomyIndexPage']);
@@ -274,6 +275,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/sells/pos/get-recent-transactions', [SellPosController::class, 'getRecentTransactions']);
     Route::get('/sells/pos/get-product-suggestion', [SellPosController::class, 'getProductSuggestion']);
     Route::get('/sells/pos/get-featured-products/{location_id}', [SellPosController::class, 'getFeaturedProducts']);
+    Route::get('/sales/validate-referral-code', [SellPosController::class, 'validateReferralCode']);
     Route::get('/reset-mapping', [SellController::class, 'resetMapping']);
 
     Route::resource('pos', SellPosController::class);
@@ -323,6 +325,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/reports/sales-representative-total-expense', [ReportController::class, 'getSalesRepresentativeTotalExpense']);
     Route::get('/reports/sales-representative-total-sell', [ReportController::class, 'getSalesRepresentativeTotalSell']);
     Route::get('/reports/sales-representative-total-commission', [ReportController::class, 'getSalesRepresentativeTotalCommission']);
+    Route::get('/reports/staff-referral-bonus', [ReportController::class, 'getStaffReferralBonusReport'])->name('report.staffReferralBonus');
+    Route::get('/reports/staff-referral-bonus-details/{user_id}', [ReportController::class, 'getStaffReferralBonusDetails'])->name('report.staffReferralBonusDetails');
     Route::get('/reports/stock-expiry', [ReportController::class, 'getStockExpiryReport']);
     Route::get('/reports/stock-expiry-edit-modal/{purchase_line_id}', [ReportController::class, 'getStockExpiryReportEditModal']);
     Route::post('/reports/stock-expiry-update', [ReportController::class, 'updateStockExpiryReport'])->name('updateStockExpiryReport');
