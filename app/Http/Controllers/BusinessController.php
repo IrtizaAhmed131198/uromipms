@@ -422,6 +422,37 @@ class BusinessController extends Controller
                 $business_details['logo'] = $logo_name;
             }
 
+            // Upload letterhead image
+            if (! empty($request->input('remove_letterhead_image'))) {
+                $business_details['letterhead_image'] = null;
+            }
+            $letterhead_name = $this->businessUtil->uploadFile($request, 'letterhead_image', 'business_logos', 'image');
+            if (! empty($letterhead_name)) {
+                $business_details['letterhead_image'] = $letterhead_name;
+            }
+
+            // Upload footer image
+            if (! empty($request->input('remove_footer_image'))) {
+                $business_details['footer_image'] = null;
+            }
+            $footer_name = $this->businessUtil->uploadFile($request, 'footer_image', 'business_logos', 'image');
+            if (! empty($footer_name)) {
+                $business_details['footer_image'] = $footer_name;
+            }
+
+            // Upload signature image
+            if (! empty($request->input('remove_signature_image'))) {
+                $business_details['signature_image'] = null;
+            }
+            $signature_name = $this->businessUtil->uploadFile($request, 'signature_image', 'business_logos', 'image');
+            if (! empty($signature_name)) {
+                $business_details['signature_image'] = $signature_name;
+            }
+
+            if ($request->has('quotation_terms')) {
+                $business_details['quotation_terms'] = $request->input('quotation_terms');
+            }
+
             $checkboxes = ['enable_editing_product_from_purchase',
                 'enable_inline_tax',
                 'enable_brand', 'enable_category', 'enable_sub_category', 'enable_price_tax', 'enable_purchase_status',

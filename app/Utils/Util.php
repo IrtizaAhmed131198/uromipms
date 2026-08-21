@@ -356,6 +356,13 @@ class Util
 
         $ref_digits = str_pad($ref_count, 4, 0, STR_PAD_LEFT);
 
+        if ($type == 'quotation') {
+            $prefix = !empty($prefix) ? (substr($prefix, -1) == '-' ? $prefix : $prefix . '-') : 'QT-';
+            $ref_year = \Carbon::now()->year;
+            $ref_digits = str_pad($ref_count, 6, '0', STR_PAD_LEFT);
+            return $prefix . $ref_year . '-' . $ref_digits;
+        }
+
         if (! in_array($type, ['contacts', 'business_location', 'username'])) {
             $ref_year = \Carbon::now()->year;
             $ref_number = $prefix.$ref_year.'/'.$ref_digits;

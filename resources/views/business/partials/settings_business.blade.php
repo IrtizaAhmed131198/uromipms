@@ -85,6 +85,76 @@
                 @endif
             </div>
         </div>
+
+        <div class="clearfix"></div>
+        <div class="col-xs-12">
+            <hr>
+            <h4 class="text-primary font-weight-bold"><i class="fa fa-file-invoice"></i> Quotation & Letterhead Settings</h4>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                {!! Form::label('letterhead_image', 'Company Letterhead / Header:') !!}
+                {!! Form::file('letterhead_image', ['accept' => 'image/*']) !!}
+                <p class="help-block"><i>Upload header banner/letterhead image for A4 quotations (PNG/JPG)</i></p>
+                @if (!empty($business->letterhead_image))
+                    <div class="m-t-10">
+                        <img src="{{ asset('uploads/business_logos/' . $business->letterhead_image) }}" alt="Letterhead" class="img-responsive img-thumbnail" style="max-height: 70px;">
+                        <div class="m-t-10">
+                            <label>
+                                {!! Form::checkbox('remove_letterhead_image', 1, false, ['class' => 'input-icheck']) !!}
+                                Remove Letterhead Image
+                            </label>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="form-group">
+                {!! Form::label('footer_image', 'Company Footer Image:') !!}
+                {!! Form::file('footer_image', ['accept' => 'image/*']) !!}
+                <p class="help-block"><i>Upload footer banner image for quotation PDFs</i></p>
+                @if (!empty($business->footer_image))
+                    <div class="m-t-10">
+                        <img src="{{ asset('uploads/business_logos/' . $business->footer_image) }}" alt="Footer" class="img-responsive img-thumbnail" style="max-height: 70px;">
+                        <div class="m-t-10">
+                            <label>
+                                {!! Form::checkbox('remove_footer_image', 1, false, ['class' => 'input-icheck']) !!}
+                                Remove Footer Image
+                            </label>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="form-group">
+                {!! Form::label('signature_image', 'Authorized Signature Image:') !!}
+                {!! Form::file('signature_image', ['accept' => 'image/*']) !!}
+                <p class="help-block"><i>Upload authorized signature/stamp image (PNG transparent recommended)</i></p>
+                @if (!empty($business->signature_image))
+                    <div class="m-t-10">
+                        <img src="{{ asset('uploads/business_logos/' . $business->signature_image) }}" alt="Signature" class="img-responsive img-thumbnail" style="max-height: 70px;">
+                        <div class="m-t-10">
+                            <label>
+                                {!! Form::checkbox('remove_signature_image', 1, false, ['class' => 'input-icheck']) !!}
+                                Remove Signature Image
+                            </label>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="col-sm-12">
+            <div class="form-group">
+                {!! Form::label('quotation_terms', 'Default Quotation Terms & Conditions:') !!}
+                {!! Form::textarea('quotation_terms', !empty($business->quotation_terms) ? $business->quotation_terms : "1. This quotation is valid for 14 days.\n2. Prices are subject to change after expiry.\n3. Payment terms: 100% upfront / on delivery.", ['class' => 'form-control', 'rows' => 3, 'placeholder' => 'Enter default quotation terms & conditions']); !!}
+            </div>
+        </div>
+        <div class="clearfix"></div>
         <div class="col-md-4">
             <div class="form-group">
                 {!! Form::label('fy_start_month', __('business.fy_start_month') . ':') !!} @show_tooltip(__('tooltip.fy_start_month'))

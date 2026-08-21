@@ -77,7 +77,7 @@ return [
     'enable_crm_call_log' => false,
     'enable_product_bulk_edit' => false,  //Will be depreciated in future
     'enable_convert_draft_to_invoice' => false, //Experimental beta feature.
-    'enable_download_pdf' => false,         //Experimental feature
+    'enable_download_pdf' => env('ENABLE_DOWNLOAD_PDF', true),
     'invoice_scheme_separator' => '-',
     'show_payments_recovered_today' => false, //Displays payment recovered today table on dashboard
     'enable_b2b_marketplace' => false,
