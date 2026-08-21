@@ -135,75 +135,43 @@
                         <!-- Referral History Tab (Matching Client Mockup) -->
                         <div class="tab-pane" id="referral_history_tab">
                             <!-- Referral KPI Cards -->
-                            <div class="row" style="margin-bottom: 20px;">
+                            <div class="row" style="margin-bottom: 15px;">
                                 <div class="col-md-3 col-sm-6">
-                                    <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-radius: 10px; padding: 16px 18px; color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.12); margin-bottom: 15px;">
-                                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                                            <div>
-                                                <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.8px; color: #f0f9ff; margin-bottom: 4px;">
-                                                    Referral Code
-                                                </div>
-                                                <div style="font-size: 19px; font-weight: 800; color: #ffffff; letter-spacing: 1px;">
-                                                    {{ $user->referral_code ?? '—' }}
-                                                </div>
-                                            </div>
-                                            <div style="background: rgba(255,255,255,0.22); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fa fa-tag" style="font-size: 20px; color: #ffffff;"></i>
-                                            </div>
+                                    <div class="info-box bg-aqua" style="border-radius: 8px;">
+                                        <span class="info-box-icon"><i class="fa fa-tag"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Referral Code</span>
+                                            <span class="info-box-number" style="font-size: 16px; letter-spacing: 0.5px;">{{ $user->referral_code ?? '—' }}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3 col-sm-6">
-                                    <div style="background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); border-radius: 10px; padding: 16px 18px; color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.12); margin-bottom: 15px;">
-                                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                                            <div>
-                                                <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.8px; color: #eff6ff; margin-bottom: 4px;">
-                                                    Referred Sales
-                                                </div>
-                                                <div style="font-size: 19px; font-weight: 800; color: #ffffff;">
-                                                    {{ $referral_metrics->total_referred_sales ?? 0 }}
-                                                </div>
-                                            </div>
-                                            <div style="background: rgba(255,255,255,0.22); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fa fa-shopping-cart" style="font-size: 20px; color: #ffffff;"></i>
-                                            </div>
+                                    <div class="info-box bg-blue" style="border-radius: 8px;">
+                                        <span class="info-box-icon"><i class="fa fa-shopping-cart"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Referred Sales</span>
+                                            <span class="info-box-number" style="font-size: 16px;">{{ $referral_metrics->total_referred_sales ?? 0 }}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3 col-sm-6">
-                                    <div style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-radius: 10px; padding: 16px 18px; color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.12); margin-bottom: 15px;">
-                                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                                            <div>
-                                                <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.8px; color: #fffbeb; margin-bottom: 4px;">
-                                                    Referred Sales Value
-                                                </div>
-                                                <div style="font-size: 19px; font-weight: 800; color: #ffffff;">
-                                                    <span class="display_currency" data-currency_symbol="true">{{ $referral_metrics->total_sales_value ?? 0 }}</span>
-                                                </div>
-                                            </div>
-                                            <div style="background: rgba(255,255,255,0.22); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fa fa-chart-line" style="font-size: 20px; color: #ffffff;"></i>
-                                            </div>
+                                    <div class="info-box bg-yellow" style="border-radius: 8px;">
+                                        <span class="info-box-icon"><i class="fa fa-chart-line"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Referred Sales Value</span>
+                                            <span class="info-box-number display_currency" data-currency_symbol="true" style="font-size: 16px;">{{ $referral_metrics->total_sales_value ?? 0 }}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-3 col-sm-6">
-                                    <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 10px; padding: 16px 18px; color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.12); margin-bottom: 15px;">
-                                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                                            <div>
-                                                <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.8px; color: #ecfdf5; margin-bottom: 4px;">
-                                                    Total Bonus Earned
-                                                </div>
-                                                <div style="font-size: 19px; font-weight: 800; color: #ffffff;">
-                                                    <span class="display_currency" data-currency_symbol="true">{{ $referral_metrics->grand_total_bonus ?? 0 }}</span>
-                                                </div>
-                                            </div>
-                                            <div style="background: rgba(255,255,255,0.22); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fa fa-money-bill-wave" style="font-size: 20px; color: #ffffff;"></i>
-                                            </div>
+                                    <div class="info-box bg-green" style="border-radius: 8px;">
+                                        <span class="info-box-icon"><i class="fa fa-money-bill-wave"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Total Bonus Earned</span>
+                                            <span class="info-box-number display_currency" data-currency_symbol="true" style="font-size: 16px;">{{ $referral_metrics->grand_total_bonus ?? 0 }}</span>
                                         </div>
                                     </div>
                                 </div>
