@@ -47,6 +47,10 @@
                                 <a class="pull-right">{{$user->email}}</a>
                             </li>
                             <li class="list-group-item">
+                                <b>Staff Referral Code</b>
+                                <span class="badge pull-right" style="background:#10b981; font-size:12px; letter-spacing:0.5px; padding:4px 8px; border-radius:4px; font-weight:bold;">{{ $user->referral_code ?? '—' }}</span>
+                            </li>
+                            <li class="list-group-item">
                                 <b>{{ __('lang_v1.status_for_user') }}</b>
                                 @if($user->status == 'active')
                                     <span class="label label-success pull-right">
@@ -76,13 +80,17 @@
                         <li class="active">
                             <a href="#user_info_tab" data-toggle="tab" aria-expanded="true"><i class="fas fa-user" aria-hidden="true"></i> @lang( 'lang_v1.user_info')</a>
                         </li>
+
+                        <li>
+                            <a href="#referral_history_tab" data-toggle="tab" aria-expanded="false"><i class="fas fa-trophy" aria-hidden="true" style="color: #eab308;"></i> Referral History</a>
+                        </li>
                         
                         <li>
-                            <a href="#documents_and_notes_tab" data-toggle="tab" aria-expanded="true"><i class="fas fa-paperclip" aria-hidden="true"></i> @lang('lang_v1.documents_and_notes')</a>
+                            <a href="#documents_and_notes_tab" data-toggle="tab" aria-expanded="false"><i class="fas fa-paperclip" aria-hidden="true"></i> @lang('lang_v1.documents_and_notes')</a>
                         </li>
 
                         <li>
-                            <a href="#activities_tab" data-toggle="tab" aria-expanded="true"><i class="fas fa-pen-square" aria-hidden="true"></i> @lang('lang_v1.activities')</a>
+                            <a href="#activities_tab" data-toggle="tab" aria-expanded="false"><i class="fas fa-pen-square" aria-hidden="true"></i> @lang('lang_v1.activities')</a>
                         </li>
                     </ul>
 
@@ -123,6 +131,127 @@
                             </div>
                             @include('user.show_details')
                         </div>
+
+                        <!-- Referral History Tab (Matching Client Mockup) -->
+                        <div class="tab-pane" id="referral_history_tab">
+                            <!-- Referral KPI Cards -->
+                            <div class="row" style="margin-bottom: 15px;">
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="info-box bg-aqua" style="border-radius: 8px;">
+                                        <span class="info-box-icon"><i class="fa fa-tag"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Referral Code</span>
+                                            <span class="info-box-number" style="font-size: 16px; letter-spacing: 0.5px;">{{ $user->referral_code ?? '—' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="info-box bg-blue" style="border-radius: 8px;">
+                                        <span class="info-box-icon"><i class="fa fa-shopping-cart"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Referred Sales</span>
+                                            <span class="info-box-number" style="font-size: 16px;">{{ $referral_metrics->total_referred_sales ?? 0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="info-box bg-yellow" style="border-radius: 8px;">
+                                        <span class="info-box-icon"><i class="fa fa-chart-line"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Referred Sales Value</span>
+                                            <span class="info-box-number display_currency" data-currency_symbol="true" style="font-size: 16px;">{{ $referral_metrics->total_sales_value ?? 0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="info-box bg-green" style="border-radius: 8px;">
+                                        <span class="info-box-icon"><i class="fa fa-money-bill-wave"></i></span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Total Bonus Earned</span>
+                                            <span class="info-box-number display_currency" data-currency_symbol="true" style="font-size: 16px;">{{ $referral_metrics->grand_total_bonus ?? 0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h4 class="text-primary font-weight-bold" style="margin-top: 10px; margin-bottom: 12px;">
+                                <i class="fa fa-history"></i> Referral History
+                            </h4>
+                            <p class="text-muted" style="font-size: 12px; margin-bottom: 15px;">
+                                Detailed breakdown showing who was referred, what activity generated the bonus, the earnings, and payment status.
+                            </p>
+
+                            <!-- Referral History Table matching client mockup exactly -->
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="staff_referral_history_table" style="width: 100%;">
+                                    <thead>
+                                        <tr class="bg-gray" style="background-color: #1e293b; color: white;">
+                                            <th>Date</th>
+                                            <th>Referred User</th>
+                                            <th>Activity</th>
+                                            <th>Bonus</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($referral_sales as $sale)
+                                            @php
+                                                $is_paid = ($sale->payment_status == 'paid');
+                                                $activity_desc = 'Successful Referral (Invoice: ' . $sale->invoice_no . ')';
+                                                if ($sale->referral_extra_profit_commission > 0) {
+                                                    $activity_desc = 'Completed Sale + Extra Profit (Invoice: ' . $sale->invoice_no . ')';
+                                                }
+                                            @endphp
+                                            <tr>
+                                                <td>{{ @format_date($sale->transaction_date) }}</td>
+                                                <td>
+                                                    <strong>{{ $sale->customer_name ?? 'Walk-In Customer' }}</strong>
+                                                </td>
+                                                <td>
+                                                    <span class="text-primary font-weight-semibold">{{ $activity_desc }}</span>
+                                                    <br>
+                                                    <small class="text-muted">Branch: {{ $sale->location_name }} | Total: <span class="display_currency" data-currency_symbol="true">{{ $sale->final_total }}</span></small>
+                                                </td>
+                                                <td>
+                                                    <strong class="display_currency text-success" data-currency_symbol="true" style="font-size: 13px;">{{ $sale->referral_total_commission }}</strong>
+                                                    @if($sale->referral_extra_profit_commission > 0)
+                                                        <br>
+                                                        <small class="text-muted">(Std: {{ @num_format($sale->referral_standard_commission) }} + Extra: {{ @num_format($sale->referral_extra_profit_commission) }})</small>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if($is_paid)
+                                                        <span class="label label-success" style="font-size: 11px; padding: 4px 8px;"><i class="fa fa-check"></i> Paid</span>
+                                                    @else
+                                                        <span class="label label-warning" style="font-size: 11px; padding: 4px 8px;"><i class="fa fa-clock"></i> Pending ({{ ucfirst($sale->payment_status) }})</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted" style="padding: 25px;">
+                                                    <i class="fa fa-info-circle fa-2x"></i><br>
+                                                    No referral bonus transactions recorded yet for this staff member.
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                    @if(count($referral_sales) > 0)
+                                    <tfoot>
+                                        <tr class="bg-gray font-17 font-weight-bold">
+                                            <td colspan="3" class="text-right">Total Bonus Earned:</td>
+                                            <td><strong class="display_currency text-success" data-currency_symbol="true">{{ $referral_metrics->grand_total_bonus ?? 0 }}</strong></td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                    @endif
+                                </table>
+                            </div>
+                        </div>
+
                         <div class="tab-pane" id="documents_and_notes_tab">
                             <!-- model id like project_id, user_id -->
                             <input type="hidden" name="notable_id" id="notable_id" value="{{$user->id}}">
@@ -155,6 +284,20 @@
                     window.location = "{{url('/users')}}/" + $(this).val();
                 }
             });
+
+            if ($('#staff_referral_history_table tbody tr td').length > 1) {
+                $('#staff_referral_history_table').DataTable({
+                    order: [[0, 'desc']],
+                    pageLength: 10,
+                    dom: 'Bfrtip',
+                    buttons: [
+                        { extend: 'csv', text: '<i class="fa fa-file-csv"></i> CSV' },
+                        { extend: 'excel', text: '<i class="fa fa-file-excel"></i> Excel' },
+                        { extend: 'pdf', text: '<i class="fa fa-file-pdf"></i> PDF' },
+                        { extend: 'print', text: '<i class="fa fa-print"></i> Print' }
+                    ]
+                });
+            }
         });
     </script>
 @endsection

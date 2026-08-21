@@ -48,6 +48,10 @@
     	aria-labelledby="gridSystemModalLabel">
     </div>
 
+    <div class="modal fade referral_details_modal" tabindex="-1" role="dialog" 
+    	aria-labelledby="gridSystemModalLabel">
+    </div>
+
 </section>
 <!-- /.content -->
 @stop

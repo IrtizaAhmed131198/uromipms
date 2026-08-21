@@ -26,6 +26,7 @@
                 <th>Std Commission</th>
                 <th>Extra Profit Commission</th>
                 <th>Total Commission</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -41,6 +42,7 @@
                   $tot_std += $sale->referral_standard_commission;
                   $tot_extra += $sale->referral_extra_profit_commission;
                   $tot_comm += $sale->referral_total_commission;
+                  $is_paid = ($sale->payment_status == 'paid');
                 @endphp
                 <tr>
                   <td>{{ @format_datetime($sale->transaction_date) }}</td>
@@ -53,6 +55,13 @@
                   <td><span class="display_currency text-primary" data-currency_symbol="true">{{ $sale->referral_standard_commission }}</span></td>
                   <td><span class="display_currency text-warning" data-currency_symbol="true">{{ $sale->referral_extra_profit_commission }}</span></td>
                   <td><strong class="display_currency text-success" data-currency_symbol="true">{{ $sale->referral_total_commission }}</strong></td>
+                  <td>
+                    @if($is_paid)
+                      <span class="label label-success" style="font-size: 11px; padding: 3px 6px;"><i class="fa fa-check"></i> Paid</span>
+                    @else
+                      <span class="label label-warning" style="font-size: 11px; padding: 3px 6px;"><i class="fa fa-clock"></i> Pending ({{ ucfirst($sale->payment_status) }})</span>
+                    @endif
+                  </td>
                 </tr>
               @endforeach
             </tbody>
@@ -63,6 +72,7 @@
                 <td><span class="display_currency text-primary" data-currency_symbol="true">{{ $tot_std }}</span></td>
                 <td><span class="display_currency text-warning" data-currency_symbol="true">{{ $tot_extra }}</span></td>
                 <td><strong class="display_currency text-success" data-currency_symbol="true">{{ $tot_comm }}</strong></td>
+                <td></td>
               </tr>
             </tfoot>
           </table>
