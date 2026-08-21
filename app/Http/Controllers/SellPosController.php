@@ -3413,16 +3413,15 @@ class SellPosController extends Controller
     {
         $business_id = $request->session()->get('user.business_id');
         $code = trim($request->input('code'));
-
-        if (empty($code)) {
-            return [
-                'is_valid' => false,
-                'msg' => __('messages.something_went_wrong'),
-            ];
-        }
+        $clean_code = str_replace([' ', '-', ':'], '', strtoupper($code));
 
         $user = User::where('business_id', $business_id)
-                    ->where('referral_code', $code)
+                    ->where(function($q) use ($code, $clean_code) {
+                        $q->where('referral_code', $code)
+                          ->orWhere('referral_code', 'REF: ' . $code)
+                          ->orWhere('referral_code', 'REF-' . $code)
+                          ->orWhereRaw("REPLACE(REPLACE(REPLACE(UPPER(referral_code), ' ', ''), '-', ''), ':', '') = ?", [$clean_code]);
+                    })
                     ->first();
 
         if (!empty($user)) {
@@ -3431,7 +3430,8 @@ class SellPosController extends Controller
                 'is_valid' => true,
                 'user_id' => $user->id,
                 'name' => $name,
-                'msg' => 'Staff Verified: ' . $name . ' (' . $code . ')',
+                'referral_code' => $user->referral_code,
+                'msg' => 'Staff Verified: ' . $name . ' (' . $user->referral_code . ')',
             ];
         } else {
             return [

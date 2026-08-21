@@ -1869,7 +1869,8 @@ class Util
     public function generateStaffReferralCode($business_id = null)
     {
         do {
-            $code = 'REF-' . strtoupper(\Illuminate\Support\Str::random(6));
+            $digits = rand(100000, 999999);
+            $code = 'REF: ' . $digits;
         } while (\App\User::where('referral_code', $code)->exists());
 
         return $code;
