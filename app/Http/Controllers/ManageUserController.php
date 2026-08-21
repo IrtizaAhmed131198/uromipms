@@ -51,7 +51,7 @@ class ManageUserController extends Controller
             return Datatables::of($users)
                 ->editColumn('username', '{{$username}} @if(empty($allow_login)) <span class="label bg-gray">@lang("lang_v1.login_not_allowed")</span>@endif')
                 ->editColumn('referral_code', function ($row) {
-                    if (empty($row->referral_code)) {
+                    if (empty($row->referral_code) || strpos($row->referral_code, 'REF: ') === false) {
                         $code = $this->moduleUtil->generateStaffReferralCode($row->business_id);
                         User::where('id', $row->id)->update(['referral_code' => $code]);
                         $row->referral_code = $code;
@@ -184,7 +184,7 @@ class ManageUserController extends Controller
                     ->with(['contactAccess'])
                     ->find($id);
 
-        if (empty($user->referral_code)) {
+        if (empty($user->referral_code) || strpos($user->referral_code, 'REF: ') === false) {
             $user->referral_code = $this->moduleUtil->generateStaffReferralCode($business_id);
             $user->save();
         }
