@@ -330,6 +330,20 @@
                     ]
                 });
             }
+
+            if ($('.user_activities_table tbody tr td').length > 1 && !$('.user_activities_table tbody tr td').first().hasClass('text-center')) {
+                $('.user_activities_table').DataTable({
+                    order: [[0, 'desc']],
+                    pageLength: 10,
+                    dom: 'Bfrtip',
+                    buttons: [
+                        { extend: 'csv', text: '<i class="fa fa-file-csv"></i> CSV' },
+                        { extend: 'excel', text: '<i class="fa fa-file-excel"></i> Excel' },
+                        { extend: 'pdf', text: '<i class="fa fa-file-pdf"></i> PDF' },
+                        { extend: 'print', text: '<i class="fa fa-print"></i> Print' }
+                    ]
+                });
+            }
         });
     </script>
 @endsection
