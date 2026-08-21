@@ -3187,6 +3187,10 @@ class SellPosController extends Controller
         $receipt_details = $receipt_contents['receipt_details'];
         $location_details = $receipt_contents['location_details'];
 
+        if (!file_exists(public_path('uploads/temp'))) {
+            @mkdir(public_path('uploads/temp'), 0777, true);
+        }
+
         // Generate pdf
         $body = view('sale_pos.receipts.download_quotation_pdf')
             ->with(compact('receipt_details', 'location_details', 'sub_status'))
@@ -3199,14 +3203,18 @@ class SellPosController extends Controller
             'autoLangToFont' => true,
             'autoVietnamese' => true,
             'autoArabic' => true,
-            'margin_top' => 8,
-            'margin_bottom' => 8,
+            'margin_top' => 6,
+            'margin_bottom' => 6,
+            'margin_left' => 8,
+            'margin_right' => 8,
             'format' => 'A4',
         ]);
 
         $mpdf->useSubstitutions = true;
-        $mpdf->SetWatermarkText($receipt_details->business_name, 0.1);
-        $mpdf->showWatermarkText = true;
+        if (!empty($receipt_details->business_name)) {
+            $mpdf->SetWatermarkText($receipt_details->business_name, 0.04);
+            $mpdf->showWatermarkText = true;
+        }
         $mpdf->SetTitle($pdf_name . '-' . $receipt_details->invoice_no . '.pdf');
         $mpdf->WriteHTML($body);
         $mpdf->Output($pdf_name . '-' . $receipt_details->invoice_no . '.pdf', 'I');

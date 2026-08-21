@@ -44,7 +44,8 @@ class TransactionUtil extends Util
     {
         $sale_type = !empty($input['type']) ? $input['type'] : 'sell';
         $invoice_scheme_id = !empty($input['invoice_scheme_id']) ? $input['invoice_scheme_id'] : null;
-        $invoice_no = !empty($input['invoice_no']) ? $input['invoice_no'] : $this->getInvoiceNumber($business_id, $input['status'], $input['location_id'], $invoice_scheme_id, $sale_type);
+        $is_quotation = (!empty($input['is_quotation']) && $input['is_quotation'] == 1) || (!empty($input['status']) && $input['status'] == 'quotation') || (!empty($input['sub_status']) && $input['sub_status'] == 'quotation') || $sale_type == 'quotation';
+        $invoice_no = !empty($input['invoice_no']) ? $input['invoice_no'] : $this->getInvoiceNumber($business_id, $input['status'], $input['location_id'], $invoice_scheme_id, $sale_type, $is_quotation);
 
         $final_total = $uf_data ? $this->num_uf($input['final_total']) : $input['final_total'];
 
@@ -1094,8 +1095,31 @@ class TransactionUtil extends Util
                     : null;
         }
 
+        // Letterhead image from business settings
+        $output['letterhead_image'] = !empty($business_details->letterhead_image) && file_exists(public_path('uploads/business_logos/' . $business_details->letterhead_image)) ? asset('uploads/business_logos/' . $business_details->letterhead_image) : null;
+        $output['letterhead_image_path'] = !empty($business_details->letterhead_image) && file_exists(public_path('uploads/business_logos/' . $business_details->letterhead_image)) ? public_path('uploads/business_logos/' . $business_details->letterhead_image) : null;
+
+        // Footer image from business settings
+        $output['footer_image'] = !empty($business_details->footer_image) && file_exists(public_path('uploads/business_logos/' . $business_details->footer_image)) ? asset('uploads/business_logos/' . $business_details->footer_image) : null;
+        $output['footer_image_path'] = !empty($business_details->footer_image) && file_exists(public_path('uploads/business_logos/' . $business_details->footer_image)) ? public_path('uploads/business_logos/' . $business_details->footer_image) : null;
+
+        // Signature image from business settings
+        $output['signature_image'] = !empty($business_details->signature_image) && file_exists(public_path('uploads/business_logos/' . $business_details->signature_image)) ? asset('uploads/business_logos/' . $business_details->signature_image) : null;
+        $output['signature_image_path'] = !empty($business_details->signature_image) && file_exists(public_path('uploads/business_logos/' . $business_details->signature_image)) ? public_path('uploads/business_logos/' . $business_details->signature_image) : null;
+
+        // Quotation Terms
+        $output['quotation_terms'] = !empty($business_details->quotation_terms) ? $business_details->quotation_terms : null;
+
+        // Prepared by user
+        $creator = \App\User::find($transaction->created_by);
+        $output['prepared_by'] = !empty($creator) ? $creator->user_full_name : '';
+
         // Logo
         $output['logo'] = $il->show_logo != 0 && !empty($il->logo) && file_exists(public_path('uploads/invoice_logos/' . $il->logo)) ? asset('uploads/invoice_logos/' . $il->logo) : false;
+        if (empty($output['logo']) && !empty($business_details->logo) && file_exists(public_path('uploads/business_logos/' . $business_details->logo))) {
+            $output['logo'] = asset('uploads/business_logos/' . $business_details->logo);
+            $output['logo_path'] = public_path('uploads/business_logos/' . $business_details->logo);
+        }
 
         // Address
         $output['address'] = '';
@@ -2148,6 +2172,9 @@ class TransactionUtil extends Util
                 'line_total_exc_tax' => $this->num_f($line->unit_price * $line->quantity, false, $business_details),
                 'line_total_exc_tax_uf' => $line->unit_price * $line->quantity,
                 'variation_id' => $variation->id,
+                'sub_sku' => !empty($variation->sub_sku) ? $variation->sub_sku : $product->sku,
+                'image' => !empty($product->image) ? asset('uploads/img/' . $product->image) : null,
+                'image_path' => !empty($product->image) && file_exists(public_path('uploads/img/' . $product->image)) ? public_path('uploads/img/' . $product->image) : null,
             ];
 
             $temp = [];
@@ -2411,9 +2438,14 @@ class TransactionUtil extends Util
      * @param  string  $location_id
      * @return string
      */
-    public function getInvoiceNumber($business_id, $status, $location_id, $invoice_scheme_id = null, $sale_type = null)
+    public function getInvoiceNumber($business_id, $status, $location_id, $invoice_scheme_id = null, $sale_type = null, $is_quotation = false)
     {
-        if ($status == 'final') {
+        if ($is_quotation || $sale_type == 'quotation' || $status == 'quotation') {
+            $ref_count = $this->setAndGetReferenceCount('quotation', $business_id);
+            $invoice_no = $this->generateReferenceNumber('quotation', $ref_count, $business_id, 'QT-');
+
+            return $invoice_no;
+        } elseif ($status == 'final') {
             if (empty($invoice_scheme_id)) {
                 $scheme = $this->getInvoiceScheme($business_id, $location_id);
             } else {
