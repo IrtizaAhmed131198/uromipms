@@ -318,6 +318,9 @@ class ManageUserController extends Controller
                 $user_data['allow_login'] = 0;
             } else {
                 $user_data['allow_login'] = 1;
+                if ($request->has('username') && ! empty(trim($request->input('username')))) {
+                    $user_data['username'] = trim($request->input('username'));
+                }
             }
 
             if (! empty($request->input('password'))) {
