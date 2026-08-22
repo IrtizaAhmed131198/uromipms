@@ -645,24 +645,12 @@ class HomeController extends Controller
      */
     public function getTotalUnreadNotifications()
     {
-        $unread_notifications = auth()->user()->unreadNotifications;
-        $total_unread = $unread_notifications->count();
-
-        $notification_html = '';
-        $modal_notifications = [];
-        foreach ($unread_notifications as $unread_notification) {
-            if (isset($data['show_popup'])) {
-                $modal_notifications[] = $unread_notification;
-                $unread_notification->markAsRead();
-            }
-        }
-        if (!empty($modal_notifications)) {
-            $notification_html = view('home.notification_modal')->with(['notifications' => $modal_notifications])->render();
-        }
+        // Use count query instead of loading all notification records (optimized for shared hosting)
+        $total_unread = auth()->user()->unreadNotifications()->count();
 
         return [
             'total_unread' => $total_unread,
-            'notification_html' => $notification_html,
+            'notification_html' => '',
         ];
     }
 
