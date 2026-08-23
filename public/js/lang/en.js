@@ -88,7 +88,7 @@ LANG = {
     'specify_business_name': "Please specify your business name",
     'password_min_length': 'Password should be minimum 4 characters',
     'password_mismatch': 'Password Mismatched',
-    'invalid_username': 'Invalid username or User already exist',
+    'invalid_username': 'User already exist',
     'details': 'Details',
     'select_location': 'You must select location before selecting any products.',
     'location_id_already_exists': 'Location ID already exists',

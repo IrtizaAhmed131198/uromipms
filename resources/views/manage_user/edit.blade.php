@@ -322,7 +322,7 @@
                         equalTo: 'Should be same as password'
                     },
                     username: {
-                        remote: 'Invalid username or User already exist'
+                        remote: 'User already exist'
                     },
                     email: {
                         remote: '{{ __("validation.unique", ["attribute" => __("business.email")]) }}'

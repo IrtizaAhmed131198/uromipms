@@ -61,9 +61,10 @@ class TransactionUtil extends Util
         $referral_code = !empty($input['referral_code']) ? trim($input['referral_code']) : null;
         $referral_staff_user_id = null;
         if (!empty($referral_code)) {
-            $referral_staff = User::where('business_id', $business_id)->where('referral_code', $referral_code)->first();
+            $referral_staff = $this->findReferralStaff($business_id, $referral_code);
             if ($referral_staff) {
                 $referral_staff_user_id = $referral_staff->id;
+                $referral_code = $referral_staff->referral_code; // Use the stored code
             }
         }
 
@@ -202,9 +203,10 @@ class TransactionUtil extends Util
         $referral_code = !empty($input['referral_code']) ? trim($input['referral_code']) : null;
         $referral_staff_user_id = null;
         if (!empty($referral_code)) {
-            $referral_staff = User::where('business_id', $business_id)->where('referral_code', $referral_code)->first();
+            $referral_staff = $this->findReferralStaff($business_id, $referral_code);
             if ($referral_staff) {
                 $referral_staff_user_id = $referral_staff->id;
+                $referral_code = $referral_staff->referral_code; // Use the stored code
             }
         }
 
@@ -525,6 +527,29 @@ class TransactionUtil extends Util
      * @param \App\Transaction $transaction
      * @return void
      */
+    /**
+     * Find a referral staff member by code, using flexible matching
+     * (exact, with REF: prefix, with REF- prefix, or stripped/uppercased)
+     *
+     * @param int $business_id
+     * @param string $code
+     * @return \App\User|null
+     */
+    private function findReferralStaff($business_id, $code)
+    {
+        $code = trim($code);
+        $clean_code = str_replace([' ', '-', ':'], '', strtoupper($code));
+
+        return User::where('business_id', $business_id)
+            ->where(function($q) use ($code, $clean_code) {
+                $q->where('referral_code', $code)
+                  ->orWhere('referral_code', 'REF: ' . $code)
+                  ->orWhere('referral_code', 'REF-' . $code)
+                  ->orWhereRaw("REPLACE(REPLACE(REPLACE(UPPER(referral_code), ' ', ''), '-', ''), ':', '') = ?", [$clean_code]);
+            })
+            ->first();
+    }
+
     public function calculateAndSetReferralCommission($transaction)
     {
         if (empty($transaction) || (empty($transaction->referral_staff_user_id) && empty($transaction->referral_code))) {
