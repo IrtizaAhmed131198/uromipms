@@ -4042,24 +4042,34 @@ class TransactionUtil extends Util
 
             $query->where(function ($query) use ($date, $next_day) {
                 $query
-                    ->whereRaw("date(transaction_date) <= '$date'")
-                    ->orWhereRaw("date(transaction_date) = '$next_day' AND purchase.type='opening_stock' ");
+                    ->where('purchase.transaction_date', '<=', $date . ' 23:59:59')
+                    ->orWhere(function ($q2) use ($next_day) {
+                        $q2->whereBetween('purchase.transaction_date', [$next_day . ' 00:00:00', $next_day . ' 23:59:59'])
+                            ->where('purchase.type', 'opening_stock');
+                    });
             });
         } else {
-            $query->whereRaw("date(transaction_date) <= '$date'");
+            $query->where('purchase.transaction_date', '<=', $date . ' 23:59:59');
         }
 
+        $sale_end_datetime = $date . ' 23:59:59';
+        $sold_subquery = \DB::table('transaction_sell_lines_purchase_lines as tspl')
+            ->join('transaction_sell_lines as tsl', 'tspl.sell_line_id', '=', 'tsl.id')
+            ->join('transactions as sale', 'tsl.transaction_id', '=', 'sale.id')
+            ->where('sale.business_id', $business_id)
+            ->where('sale.transaction_date', '<=', $sale_end_datetime)
+            ->groupBy('tspl.purchase_line_id')
+            ->select(
+                'tspl.purchase_line_id',
+                \DB::raw('SUM(tspl.quantity - tspl.qty_returned) as total_sold')
+            );
+
+        $query->leftJoinSub($sold_subquery, 'sold_lines', function ($join) {
+            $join->on('purchase_lines.id', '=', 'sold_lines.purchase_line_id');
+        });
+
         $query->select(
-            DB::raw("SUM((purchase_lines.quantity - purchase_lines.quantity_returned - purchase_lines.quantity_adjusted -
-                            (SELECT COALESCE(SUM(tspl.quantity - tspl.qty_returned), 0) FROM 
-                            transaction_sell_lines_purchase_lines AS tspl
-                            JOIN transaction_sell_lines as tsl ON 
-                            tspl.sell_line_id=tsl.id 
-                            JOIN transactions as sale ON 
-                            tsl.transaction_id=sale.id 
-                            WHERE tspl.purchase_line_id = purchase_lines.id AND 
-                            date(sale.transaction_date) <= '$date') ) * $price_query_part
-                        ) as stock")
+            \DB::raw("SUM((purchase_lines.quantity - purchase_lines.quantity_returned - purchase_lines.quantity_adjusted - COALESCE(sold_lines.total_sold, 0)) * $price_query_part) as stock")
         );
 
         // Check for permitted locations of a user
