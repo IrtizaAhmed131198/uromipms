@@ -95,7 +95,7 @@
         border-radius: 4px;
         display: inline-block;
         margin-bottom: 10px;
-        box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
     }
 
     .q-meta-table {
@@ -140,11 +140,13 @@
         text-align: left;
     }
 
-    .q-items-table th.text-center, .q-items-table td.text-center {
+    .q-items-table th.text-center,
+    .q-items-table td.text-center {
         text-align: center;
     }
 
-    .q-items-table th.text-right, .q-items-table td.text-right {
+    .q-items-table th.text-right,
+    .q-items-table td.text-right {
         text-align: right;
     }
 
@@ -303,21 +305,25 @@
             print-color-adjust: exact !important;
             color-adjust: exact !important;
         }
+
         @page {
             size: A4;
             margin: 8mm 10mm;
         }
+
         body {
             background: #ffffff !important;
             margin: 0 !important;
             padding: 0 !important;
         }
+
         .quotation-a4-wrapper {
             max-width: 100% !important;
             width: 100% !important;
             padding: 0 !important;
             border: none !important;
         }
+
         .no-print {
             display: none !important;
         }
@@ -381,7 +387,8 @@
             <table class="q-meta-table">
                 <tr>
                     <td class="q-meta-label">Quotation No:</td>
-                    <td class="q-meta-val" style="color: #1e3a8a; font-size: 12px;">{{ $receipt_details->invoice_no }}</td>
+                    <td class="q-meta-val" style="color: #1e3a8a; font-size: 12px;">{{ $receipt_details->invoice_no }}
+                    </td>
                 </tr>
                 <tr>
                     <td class="q-meta-label">Date:</td>
@@ -396,16 +403,16 @@
                     <td class="q-meta-val" style="color: #dc2626;">{{ $valid_until }}</td>
                 </tr>
                 @if(!empty($receipt_details->location_name))
-                <tr>
-                    <td class="q-meta-label">Branch:</td>
-                    <td class="q-meta-val">{{ $receipt_details->location_name }}</td>
-                </tr>
+                    <tr>
+                        <td class="q-meta-label">Branch:</td>
+                        <td class="q-meta-val">{{ $receipt_details->location_name }}</td>
+                    </tr>
                 @endif
                 @if(!empty($receipt_details->prepared_by))
-                <tr>
-                    <td class="q-meta-label">Prepared By:</td>
-                    <td class="q-meta-val">{{ $receipt_details->prepared_by }}</td>
-                </tr>
+                    <tr>
+                        <td class="q-meta-label">Prepared By:</td>
+                        <td class="q-meta-val">{{ $receipt_details->prepared_by }}</td>
+                    </tr>
                 @endif
             </table>
         </div>
@@ -437,11 +444,12 @@
                                 <span style="font-weight: normal; color: #64748b;">({{ $line['variation'] }})</span>
                             @endif
                         </div>
-                        @if(!empty($line['sub_sku']))
-                            <div style="font-size: 9px; color: #94a3b8;">SKU: {{ $line['sub_sku'] }}</div>
-                        @endif
+                        <!-- @if(!empty($line['sub_sku']))
+                                <div style="font-size: 9px; color: #94a3b8;">SKU: {{ $line['sub_sku'] }}</div>
+                            @endif -->
                         @if(!empty($line['product_description']))
-                            <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">{!! $line['product_description'] !!}</div>
+                            <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">{!! $line['product_description'] !!}
+                            </div>
                         @endif
                     </td>
                     <td class="text-center">
@@ -452,7 +460,8 @@
                         @endif
                     </td>
                     <td class="text-center" style="font-weight: 700; color: #1e293b;">
-                        {{ $line['quantity'] }} <small style="color: #64748b; font-weight: normal;">{{ $line['units'] }}</small>
+                        {{ $line['quantity'] }} <small
+                            style="color: #64748b; font-weight: normal;">{{ $line['units'] }}</small>
                     </td>
                     <td class="text-right" style="font-weight: 600;">
                         {{ $line['unit_price_inc_tax'] }}
@@ -474,10 +483,10 @@
                 @if(!empty($receipt_details->quotation_terms))
                     {!! $receipt_details->quotation_terms !!}
                 @else
-1. This quotation is valid for 14 days from the date of issue.
-2. Prices are subject to change after the validity period.
-3. Payment terms as agreed prior to order confirmation.
-4. Goods remain the property of the company until paid for in full.
+                    1. This quotation is valid for 14 days from the date of issue.
+                    2. Prices are subject to change after the validity period.
+                    3. Payment terms as agreed prior to order confirmation.
+                    4. Goods remain the property of the company until paid for in full.
                 @endif
             </div>
         </div>
@@ -490,28 +499,28 @@
                     <td class="q-totals-val">{{ $receipt_details->subtotal }}</td>
                 </tr>
                 @if(!empty($receipt_details->discount) && $receipt_details->discount != 0)
-                <tr>
-                    <td class="q-totals-label">Discount:</td>
-                    <td class="q-totals-val" style="color: #dc2626;">- {{ $receipt_details->discount }}</td>
-                </tr>
+                    <tr>
+                        <td class="q-totals-label">Discount:</td>
+                        <td class="q-totals-val" style="color: #dc2626;">- {{ $receipt_details->discount }}</td>
+                    </tr>
                 @endif
                 @if(!empty($receipt_details->tax))
-                <tr>
-                    <td class="q-totals-label">{{ $receipt_details->tax_label ?? 'Tax/VAT' }}:</td>
-                    <td class="q-totals-val">{{ $receipt_details->tax }}</td>
-                </tr>
+                    <tr>
+                        <td class="q-totals-label">{{ $receipt_details->tax_label ?? 'Tax/VAT' }}:</td>
+                        <td class="q-totals-val">{{ $receipt_details->tax }}</td>
+                    </tr>
                 @endif
                 @if(!empty($receipt_details->shipping_charges) && $receipt_details->shipping_charges != 0)
-                <tr>
-                    <td class="q-totals-label">{{ $receipt_details->shipping_charges_label ?? 'Shipping' }}:</td>
-                    <td class="q-totals-val">{{ $receipt_details->shipping_charges }}</td>
-                </tr>
+                    <tr>
+                        <td class="q-totals-label">{{ $receipt_details->shipping_charges_label ?? 'Shipping' }}:</td>
+                        <td class="q-totals-val">{{ $receipt_details->shipping_charges }}</td>
+                    </tr>
                 @endif
                 @if(!empty($receipt_details->round_off_amount) && $receipt_details->round_off_amount != 0)
-                <tr>
-                    <td class="q-totals-label">{{ $receipt_details->round_off_label ?? 'Round Off' }}:</td>
-                    <td class="q-totals-val">{{ $receipt_details->round_off }}</td>
-                </tr>
+                    <tr>
+                        <td class="q-totals-label">{{ $receipt_details->round_off_label ?? 'Round Off' }}:</td>
+                        <td class="q-totals-val">{{ $receipt_details->round_off }}</td>
+                    </tr>
                 @endif
                 <tr class="q-grand-total-row">
                     <td class="q-totals-label" style="color: #1e3a8a;">GRAND TOTAL:</td>
@@ -524,7 +533,8 @@
     {{-- 5. Signatures Section --}}
     <div class="q-sign-grid">
         <div class="q-sign-box">
-            <div style="min-height: 45px; display: flex; align-items: flex-end; justify-content: center; font-weight: 600; color: #475569; font-size: 11px;">
+            <div
+                style="min-height: 45px; display: flex; align-items: flex-end; justify-content: center; font-weight: 600; color: #475569; font-size: 11px;">
                 {{ $receipt_details->prepared_by ?? 'Sales Representative' }}
             </div>
             <div class="q-sign-line">Prepared By</div>
