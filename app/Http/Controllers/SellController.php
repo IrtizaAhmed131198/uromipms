@@ -201,8 +201,8 @@ class SellController extends Controller
             if (! empty(request()->start_date) && ! empty(request()->end_date)) {
                 $start = request()->start_date;
                 $end = request()->end_date;
-                $sells->whereDate('transactions.transaction_date', '>=', $start)
-                            ->whereDate('transactions.transaction_date', '<=', $end);
+                $sells->where('transactions.transaction_date', '>=', $start . ' 00:00:00')
+                      ->where('transactions.transaction_date', '<=', $end . ' 23:59:59');
             }
 
             //Check is_direct sell
@@ -329,17 +329,17 @@ class SellController extends Controller
             }
 
             $with[] = 'payment_lines';
-            
-            if (!empty($with)) {
-                foreach ($with as $relation) {
-                    if ($relation == 'payment_lines' && !empty(request()->input('payment_method'))) {
-                        $sells->whereHas($relation, function ($query) {
-                            $query->where('method', request()->input('payment_method'));
-                        });
-                    } else {
-                        $sells->with($relation);
-                    }
-                }
+            $sells->with($with);
+
+            if (! empty(request()->input('payment_method'))) {
+                $payment_method = request()->input('payment_method');
+                $sells->whereExists(function ($query) use ($payment_method, $business_id) {
+                    $query->select(DB::raw(1))
+                          ->from('transaction_payments')
+                          ->whereColumn('transaction_payments.transaction_id', 'transactions.id')
+                          ->where('transaction_payments.business_id', $business_id)
+                          ->where('transaction_payments.method', $payment_method);
+                });
             }
 
             //$business_details = $this->businessUtil->getDetails($business_id);
