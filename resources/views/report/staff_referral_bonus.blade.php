@@ -80,38 +80,39 @@
             </div>
 
             <div class="col-md-3 col-sm-6 col-xs-12">
-                <div class="info-box bg-blue" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div class="info-box bg-green" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
                     <span class="info-box-icon" style="border-radius: 12px 0 0 12px;"><i
-                            class="fa fa-money-bill-wave"></i></span>
+                            class="fa fa-trophy"></i></span>
                     <div class="info-box-content">
                         <span class="info-box-text" style="font-size: 13px; font-weight: 600; color: #fff !important;">Total
-                            Sales Value</span>
-                        <span class="info-box-number display_currency" id="card_total_sales_value"
-                            data-currency_symbol="true" style="font-size: 22px;">0</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3 col-sm-6 col-xs-12">
-                <div class="info-box bg-yellow" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                    <span class="info-box-icon" style="border-radius: 12px 0 0 12px;"><i
-                            class="fa fa-chart-line"></i></span>
-                    <div class="info-box-content">
-                        <span class="info-box-text" style="font-size: 13px; font-weight: 600; color: #fff !important;">Extra
-                            Profit Commission</span>
-                        <span class="info-box-number display_currency" id="card_extra_profit_commission"
-                            data-currency_symbol="true" style="font-size: 22px;">0</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3 col-sm-6 col-xs-12">
-                <div class="info-box bg-green" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                    <span class="info-box-icon" style="border-radius: 12px 0 0 12px;"><i class="fa fa-trophy"></i></span>
-                    <div class="info-box-content">
-                        <span class="info-box-text" style="font-size: 13px; font-weight: 600; color: #fff !important;">Grand
-                            Total Bonus</span>
+                            Bonus Earned</span>
                         <span class="info-box-number display_currency" id="card_grand_total_bonus"
+                            data-currency_symbol="true" style="font-size: 22px;">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6 col-xs-12">
+                <div class="info-box bg-blue" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                    <span class="info-box-icon" style="border-radius: 12px 0 0 12px;"><i
+                            class="fas fa-check-double"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text" style="font-size: 13px; font-weight: 600; color: #fff !important;">Total
+                            Bonus Settled</span>
+                        <span class="info-box-number display_currency" id="card_total_paid_bonus"
+                            data-currency_symbol="true" style="font-size: 22px;">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6 col-xs-12">
+                <div class="info-box bg-red" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                    <span class="info-box-icon" style="border-radius: 12px 0 0 12px;"><i
+                            class="fas fa-exclamation-circle"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-text" style="font-size: 13px; font-weight: 600; color: #fff !important;">Pending
+                            Balance</span>
+                        <span class="info-box-number display_currency" id="card_total_pending_bonus"
                             data-currency_symbol="true" style="font-size: 22px;">0</span>
                     </div>
                 </div>
@@ -121,18 +122,20 @@
         <!-- Data Table Box -->
         <div class="row">
             <div class="col-md-12">
-                @component('components.widget', ['class' => 'box-primary', 'title' => 'Staff Referral Bonus Summary'])
+                @component('components.widget', ['class' => 'box-primary', 'title' => 'Staff Referral Bonus Summary & Settlement'])
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped" id="staff_referral_bonus_table" style="width: 100%;">
                             <thead>
                                 <tr class="bg-gray">
                                     <th>Staff Name</th>
-                                    <th>Staff Referral Code</th>
-                                    <th>Referred Sales</th>
-                                    <th>Total Sales Value</th>
-                                    <th>Standard Commission</th>
-                                    <th>Extra Profit Commission</th>
-                                    <th>Grand Total Bonus</th>
+                                    <th>Referral Code</th>
+                                    <th>Sales</th>
+                                    <th>Total Value</th>
+                                    <th>Std Commission</th>
+                                    <th>Extra Profit</th>
+                                    <th>Total Earned</th>
+                                    <th>Total Settled</th>
+                                    <th>Pending Balance</th>
                                     <th>@lang('messages.action')</th>
                                 </tr>
                             </thead>
@@ -148,6 +151,10 @@
                                             data-currency_symbol="true">0</span></td>
                                     <td><span class="display_currency" id="footer_grand_total_bonus"
                                             data-currency_symbol="true">0</span></td>
+                                    <td><span class="display_currency" id="footer_total_paid_bonus"
+                                            data-currency_symbol="true">0</span></td>
+                                    <td><span class="display_currency" id="footer_total_pending_bonus"
+                                            data-currency_symbol="true">0</span></td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -157,8 +164,9 @@
             </div>
         </div>
 
-        <div class="modal fade referral_details_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
-        </div>
+        <div class="modal fade referral_details_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel"></div>
+        <div class="modal fade referral_pay_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel"></div>
+        <div class="modal fade referral_history_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel"></div>
 
     </section>
     <!-- /.content -->
@@ -237,6 +245,16 @@
                         searchable: false
                     },
                     {
+                        data: 'total_paid_bonus',
+                        name: 'total_paid_bonus',
+                        searchable: false
+                    },
+                    {
+                        data: 'pending_bonus',
+                        name: 'pending_bonus',
+                        searchable: false
+                    },
+                    {
                         data: 'action',
                         name: 'action',
                         orderable: false,
@@ -249,6 +267,8 @@
                     var total_std_cmmsn = 0;
                     var total_extra_cmmsn = 0;
                     var grand_bonus = 0;
+                    var total_paid = 0;
+                    var total_pending = 0;
 
                     var data = staff_referral_bonus_table.rows({
                         page: 'current'
@@ -258,22 +278,25 @@
                         total_sales_val += parseFloat(data[i].total_sales_value) || 0;
                         total_std_cmmsn += parseFloat(data[i].total_standard_commission) || 0;
                         total_extra_cmmsn += parseFloat(data[i].total_extra_profit_commission) || 0;
-                        grand_bonus += parseFloat(data[i].grand_total_bonus) || 0;
+                        var earned = parseFloat(data[i].grand_total_bonus) || 0;
+                        var paid = parseFloat(data[i].total_paid_bonus) || 0;
+                        grand_bonus += earned;
+                        total_paid += paid;
+                        total_pending += Math.max(0, earned - paid);
                     }
 
                     $('#footer_total_sales_count').text(total_sales_count);
-                    $('#footer_total_sales_value').text(__currency_trans_from_en(total_sales_val,
-                    true));
+                    $('#footer_total_sales_value').text(__currency_trans_from_en(total_sales_val, true));
                     $('#footer_total_std_cmmsn').text(__currency_trans_from_en(total_std_cmmsn, true));
-                    $('#footer_total_extra_cmmsn').text(__currency_trans_from_en(total_extra_cmmsn,
-                        true));
+                    $('#footer_total_extra_cmmsn').text(__currency_trans_from_en(total_extra_cmmsn, true));
                     $('#footer_grand_total_bonus').text(__currency_trans_from_en(grand_bonus, true));
+                    $('#footer_total_paid_bonus').text(__currency_trans_from_en(total_paid, true));
+                    $('#footer_total_pending_bonus').text(__currency_trans_from_en(total_pending, true));
 
                     $('#card_total_sales_count').text(total_sales_count);
-                    $('#card_total_sales_value').text(__currency_trans_from_en(total_sales_val, true));
-                    $('#card_extra_profit_commission').text(__currency_trans_from_en(total_extra_cmmsn,
-                        true));
                     $('#card_grand_total_bonus').text(__currency_trans_from_en(grand_bonus, true));
+                    $('#card_total_paid_bonus').text(__currency_trans_from_en(total_paid, true));
+                    $('#card_total_pending_bonus').text(__currency_trans_from_en(total_pending, true));
 
                     __currency_convert_recursively($('#staff_referral_bonus_table'));
                 }
@@ -281,6 +304,44 @@
 
             $(document).on('change', '#srb_staff_id, #srb_location_id, #srb_year', function() {
                 staff_referral_bonus_table.ajax.reload();
+            });
+
+            // Initialize datetimepicker when pay modal is opened
+            $('.referral_pay_modal').on('shown.bs.modal', function() {
+                $('#referral_paid_on').datetimepicker({
+                    format: moment_date_format + ' ' + moment_time_format,
+                    ignoreReadonly: true,
+                });
+                $('.referral_pay_modal .select2').select2();
+            });
+
+            // Handle AJAX form submission for referral payment
+            $(document).on('submit', '#staff_referral_pay_form', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                var submit_btn = form.find('#submit_referral_pay_btn');
+                submit_btn.attr('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
+
+                $.ajax({
+                    method: 'POST',
+                    url: form.attr('action'),
+                    dataType: 'json',
+                    data: form.serialize(),
+                    success: function(result) {
+                        if (result.success == true) {
+                            $('div.referral_pay_modal').modal('hide');
+                            toastr.success(result.msg);
+                            staff_referral_bonus_table.ajax.reload();
+                        } else {
+                            toastr.error(result.msg);
+                        }
+                        submit_btn.attr('disabled', false).html('<i class="fa fa-check"></i> Settle Payment');
+                    },
+                    error: function(err) {
+                        toastr.error('Something went wrong. Please try again.');
+                        submit_btn.attr('disabled', false).html('<i class="fa fa-check"></i> Settle Payment');
+                    }
+                });
             });
         });
     </script>

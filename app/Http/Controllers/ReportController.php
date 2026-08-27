@@ -19,6 +19,7 @@ use App\Transaction;
 use App\TransactionPayment;
 use App\TransactionSellLine;
 use App\TransactionSellLinesPurchaseLines;
+use App\StaffReferralPayment;
 use App\Unit;
 use App\User;
 use App\Utils\BusinessUtil;
@@ -4100,7 +4101,8 @@ class ReportController extends Controller
                 DB::raw('SUM(transactions.final_total) as total_sales_value'),
                 DB::raw('SUM(transactions.referral_standard_commission) as total_standard_commission'),
                 DB::raw('SUM(transactions.referral_extra_profit_commission) as total_extra_profit_commission'),
-                DB::raw('SUM(transactions.referral_total_commission) as grand_total_bonus')
+                DB::raw('SUM(transactions.referral_total_commission) as grand_total_bonus'),
+                DB::raw('(SELECT COALESCE(SUM(srp.amount), 0) FROM staff_referral_payments as srp WHERE srp.user_id = u.id AND srp.business_id = ' . (int)$business_id . ') as total_paid_bonus')
             ])
             ->groupBy('u.id', 'u.surname', 'u.first_name', 'u.last_name', 'u.referral_code')
             ->orderBy('grand_total_bonus', 'desc');
@@ -4127,12 +4129,34 @@ class ReportController extends Controller
                     return '<span class="display_currency text-warning" data-currency_symbol="true" style="font-weight:600;">' . $this->transactionUtil->num_f($row->total_extra_profit_commission, true) . '</span>';
                 })
                 ->editColumn('grand_total_bonus', function ($row) {
-                    return '<strong class="display_currency text-success" data-currency_symbol="true" style="font-size:14px;">' . $this->transactionUtil->num_f($row->grand_total_bonus, true) . '</strong>';
+                    return '<strong class="display_currency text-success" data-currency_symbol="true" style="font-size:13.5px;">' . $this->transactionUtil->num_f($row->grand_total_bonus, true) . '</strong>';
+                })
+                ->editColumn('total_paid_bonus', function ($row) {
+                    return '<span class="display_currency text-info" data-currency_symbol="true" style="font-weight:600; font-size:13px;">' . $this->transactionUtil->num_f($row->total_paid_bonus, true) . '</span>';
+                })
+                ->editColumn('pending_bonus', function ($row) {
+                    $pending = (float)$row->grand_total_bonus - (float)$row->total_paid_bonus;
+                    if ($pending <= 0) {
+                        return '<span class="badge" style="background:#10b981; font-size:11px; padding:4px 8px;"><i class="fa fa-check-circle"></i> Settled</span>';
+                    } else {
+                        return '<strong class="display_currency text-danger" data-currency_symbol="true" style="font-size:13.5px;">' . $this->transactionUtil->num_f($pending, true) . '</strong>';
+                    }
                 })
                 ->addColumn('action', function ($row) {
-                    return '<button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary btn-modal" data-href="' . action([\App\Http\Controllers\ReportController::class, 'getStaffReferralBonusDetails'], [$row->user_id]) . '" data-container=".referral_details_modal"><i class="fa fa-list"></i> ' . __('messages.view') . '</button>';
+                    $html = '<div class="btn-group">';
+                    $html .= '<button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary dropdown-toggle" data-toggle="dropdown" aria-expanded="false">' . __('messages.action') . ' <span class="caret"></span></button>';
+                    $html .= '<ul class="dropdown-menu dropdown-menu-right" role="menu">';
+
+                    $html .= '<li><a href="#" data-href="' . action([\App\Http\Controllers\ReportController::class, 'getStaffReferralPayModal'], [$row->user_id]) . '" class="btn-modal" data-container=".referral_pay_modal"><i class="fas fa-money-bill-wave text-success"></i> Pay / Settle Bonus</a></li>';
+
+                    $html .= '<li><a href="#" data-href="' . action([\App\Http\Controllers\ReportController::class, 'getStaffReferralPaymentHistory'], [$row->user_id]) . '" class="btn-modal" data-container=".referral_history_modal"><i class="fas fa-history text-primary"></i> Settlement History</a></li>';
+
+                    $html .= '<li><a href="#" data-href="' . action([\App\Http\Controllers\ReportController::class, 'getStaffReferralBonusDetails'], [$row->user_id]) . '" class="btn-modal" data-container=".referral_details_modal"><i class="fa fa-list text-info"></i> View Referred Sales</a></li>';
+
+                    $html .= '</ul></div>';
+                    return $html;
                 })
-                ->rawColumns(['staff_name', 'referral_code', 'total_referred_sales', 'total_sales_value', 'total_standard_commission', 'total_extra_profit_commission', 'grand_total_bonus', 'action'])
+                ->rawColumns(['staff_name', 'referral_code', 'total_referred_sales', 'total_sales_value', 'total_standard_commission', 'total_extra_profit_commission', 'grand_total_bonus', 'total_paid_bonus', 'pending_bonus', 'action'])
                 ->make(true);
         }
 
@@ -4178,7 +4202,137 @@ class ReportController extends Controller
             ->orderBy('transactions.transaction_date', 'desc')
             ->get();
 
+        $total_earned = $sales->sum('referral_total_commission');
+        $total_paid = StaffReferralPayment::where('business_id', $business_id)
+            ->where('user_id', $user_id)
+            ->sum('amount');
+        $pending_balance = $total_earned - $total_paid;
+
         return view('report.partials.staff_referral_details_modal')
-            ->with(compact('staff', 'sales'));
+            ->with(compact('staff', 'sales', 'total_earned', 'total_paid', 'pending_balance'));
+    }
+
+    /**
+     * Shows modal to record a bonus payment/settlement for a staff member
+     */
+    public function getStaffReferralPayModal(Request $request, $user_id)
+    {
+        $business_id = $request->session()->get('user.business_id');
+        $staff = User::where('business_id', $business_id)->findOrFail($user_id);
+
+        $total_earned = Transaction::where('business_id', $business_id)
+            ->where('referral_staff_user_id', $user_id)
+            ->where('type', 'sell')
+            ->where('status', 'final')
+            ->sum('referral_total_commission');
+
+        $total_paid = StaffReferralPayment::where('business_id', $business_id)
+            ->where('user_id', $user_id)
+            ->sum('amount');
+
+        $pending_balance = max(0, $total_earned - $total_paid);
+
+        $payment_types = $this->transactionUtil->payment_types(null, false, $business_id);
+
+        return view('report.partials.staff_referral_pay_modal')
+            ->with(compact('staff', 'total_earned', 'total_paid', 'pending_balance', 'payment_types'));
+    }
+
+    /**
+     * Stores a new bonus settlement payment
+     */
+    public function postStaffReferralPayment(Request $request)
+    {
+        try {
+            $business_id = $request->session()->get('user.business_id');
+            $user_id = $request->input('user_id');
+            $amount = $this->transactionUtil->num_uf($request->input('amount'));
+            $paid_on = !empty($request->input('paid_on')) ? $this->transactionUtil->uf_date($request->input('paid_on'), true) : \Carbon\Carbon::now();
+
+            if ($amount <= 0) {
+                return [
+                    'success' => false,
+                    'msg' => 'Payment amount must be greater than zero.'
+                ];
+            }
+
+            StaffReferralPayment::create([
+                'business_id' => $business_id,
+                'user_id' => $user_id,
+                'amount' => $amount,
+                'paid_on' => $paid_on,
+                'method' => $request->input('method', 'cash'),
+                'account_id' => $request->input('account_id'),
+                'payment_ref_no' => $request->input('payment_ref_no'),
+                'note' => $request->input('note'),
+                'created_by' => auth()->user()->id,
+            ]);
+
+            return [
+                'success' => true,
+                'msg' => 'Bonus payment of ' . number_format($amount, 2) . ' settled successfully!'
+            ];
+        } catch (\Exception $e) {
+            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong')
+            ];
+        }
+    }
+
+    /**
+     * Shows payment settlement history for a staff member
+     */
+    public function getStaffReferralPaymentHistory(Request $request, $user_id)
+    {
+        $business_id = $request->session()->get('user.business_id');
+        $staff = User::where('business_id', $business_id)->findOrFail($user_id);
+
+        $total_earned = Transaction::where('business_id', $business_id)
+            ->where('referral_staff_user_id', $user_id)
+            ->where('type', 'sell')
+            ->where('status', 'final')
+            ->sum('referral_total_commission');
+
+        $payments = StaffReferralPayment::where('staff_referral_payments.business_id', $business_id)
+            ->where('staff_referral_payments.user_id', $user_id)
+            ->leftJoin('users as admin', 'staff_referral_payments.created_by', '=', 'admin.id')
+            ->select([
+                'staff_referral_payments.*',
+                DB::raw("CONCAT(COALESCE(admin.surname, ''), ' ', COALESCE(admin.first_name, ''), ' ', COALESCE(admin.last_name, '')) as paid_by_name")
+            ])
+            ->orderBy('staff_referral_payments.paid_on', 'desc')
+            ->get();
+
+        $total_paid = $payments->sum('amount');
+        $pending_balance = $total_earned - $total_paid;
+
+        return view('report.partials.staff_referral_payment_history_modal')
+            ->with(compact('staff', 'payments', 'total_earned', 'total_paid', 'pending_balance'));
+    }
+
+    /**
+     * Deletes a recorded bonus payment
+     */
+    public function deleteStaffReferralPayment(Request $request, $id)
+    {
+        try {
+            $business_id = $request->session()->get('user.business_id');
+            $payment = StaffReferralPayment::where('business_id', $business_id)->findOrFail($id);
+            $payment->delete();
+
+            return [
+                'success' => true,
+                'msg' => 'Bonus payment record deleted successfully.'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong')
+            ];
+        }
     }
 }
+

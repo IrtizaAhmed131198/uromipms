@@ -10,6 +10,34 @@
         </div>
 
         <div class="modal-body">
+            {{-- Staff Bonus & Settlement Overview --}}
+            <div class="row" style="margin-bottom: 15px;">
+                <div class="col-sm-4">
+                    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; text-align: center;">
+                        <div style="font-size: 11px; color: #15803d; font-weight: 700; text-transform: uppercase;">Total Bonus Earned</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #16a34a; margin-top: 2px;">
+                            <span class="display_currency" data-currency_symbol="true">{{ $total_earned ?? 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 12px; text-align: center;">
+                        <div style="font-size: 11px; color: #1d4ed8; font-weight: 700; text-transform: uppercase;">Total Settled (Paid)</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #2563eb; margin-top: 2px;">
+                            <span class="display_currency" data-currency_symbol="true">{{ $total_paid ?? 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 12px; text-align: center;">
+                        <div style="font-size: 11px; color: #b91c1c; font-weight: 700; text-transform: uppercase;">Outstanding Balance</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #dc2626; margin-top: 2px;">
+                            <span class="display_currency" data-currency_symbol="true">{{ $pending_balance ?? 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             @if ($sales->isEmpty())
                 <div class="alert alert-info text-center" style="border-radius: 8px;">
                     <i class="fa fa-info-circle fa-lg"></i> No referred sales found for this staff member.

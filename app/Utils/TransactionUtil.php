@@ -1381,6 +1381,9 @@ class TransactionUtil extends Util
             }
         }
 
+        $output['is_quotation'] = ($transaction->is_quotation == 1 || ($transaction->status == 'draft' && empty($transaction->sub_status)) || $transaction->sub_status == 'quotation');
+        $output['sub_status'] = $transaction->sub_status;
+
         $output['date_label'] = $il->date_label;
         if (blank($il->date_time_format)) {
             $output['invoice_date'] = $this->format_date($transaction->transaction_date, true, $business_details);

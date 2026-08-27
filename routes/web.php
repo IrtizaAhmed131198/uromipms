@@ -327,6 +327,10 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/reports/sales-representative-total-commission', [ReportController::class, 'getSalesRepresentativeTotalCommission']);
     Route::get('/reports/staff-referral-bonus', [ReportController::class, 'getStaffReferralBonusReport'])->name('report.staffReferralBonus');
     Route::get('/reports/staff-referral-bonus-details/{user_id}', [ReportController::class, 'getStaffReferralBonusDetails'])->name('report.staffReferralBonusDetails');
+    Route::get('/reports/staff-referral-pay/{user_id}', [ReportController::class, 'getStaffReferralPayModal'])->name('report.staffReferralPayModal');
+    Route::post('/reports/staff-referral-pay', [ReportController::class, 'postStaffReferralPayment'])->name('report.postStaffReferralPayment');
+    Route::get('/reports/staff-referral-history/{user_id}', [ReportController::class, 'getStaffReferralPaymentHistory'])->name('report.staffReferralPaymentHistory');
+    Route::delete('/reports/staff-referral-payment/{id}', [ReportController::class, 'deleteStaffReferralPayment'])->name('report.deleteStaffReferralPayment');
     Route::get('/reports/stock-expiry', [ReportController::class, 'getStockExpiryReport']);
     Route::get('/reports/stock-expiry-edit-modal/{purchase_line_id}', [ReportController::class, 'getStockExpiryReportEditModal']);
     Route::post('/reports/stock-expiry-update', [ReportController::class, 'updateStockExpiryReport'])->name('updateStockExpiryReport');
