@@ -300,7 +300,9 @@ class SellController extends Controller
                 $sells->where('transactions.delivery_person', request()->input('delivery_person'));
             }
 
-            $sells->groupBy('transactions.id');
+            if ($sale_type == 'sales_order') {
+                $sells->groupBy('transactions.id');
+            }
 
             if (! empty(request()->suspended)) {
                 $transaction_sub_type = request()->get('transaction_sub_type');

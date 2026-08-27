@@ -59,10 +59,12 @@ return new class extends Migration
         $this->addIndexSafely('transactions', ['business_id', 'location_id', 'transaction_date'], 'idx_trans_bus_loc_date');
         $this->addIndexSafely('transactions', ['business_id', 'contact_id', 'transaction_date'], 'idx_trans_bus_contact_date');
         $this->addIndexSafely('transactions', ['business_id', 'created_by', 'transaction_date'], 'idx_trans_bus_user_date');
+        $this->addIndexSafely('transactions', ['return_parent_id', 'type'], 'idx_trans_return_parent_type');
 
         // 2. Transaction Sell Lines table - essential for Profit/Loss, Sales Reports, Stock calculations
         $this->addIndexSafely('transaction_sell_lines', ['transaction_id', 'product_id'], 'idx_tsl_trans_prod');
         $this->addIndexSafely('transaction_sell_lines', ['transaction_id', 'variation_id'], 'idx_tsl_trans_var');
+        $this->addIndexSafely('transaction_sell_lines', ['transaction_id', 'parent_sell_line_id'], 'idx_tsl_trans_parent_line');
         $this->addIndexSafely('transaction_sell_lines', ['parent_sell_line_id'], 'idx_tsl_parent_sell_line_id');
 
         // 3. Purchase Lines table - essential for Stock Valuation, Inventory, Purchase Reports
@@ -74,6 +76,7 @@ return new class extends Migration
 
         // 5. Transaction Payments table - essential for Payment & Ledger Reports
         $this->addIndexSafely('transaction_payments', ['transaction_id', 'is_return', 'amount'], 'idx_tp_trans_return_amount');
+        $this->addIndexSafely('transaction_payments', ['business_id', 'transaction_id', 'method'], 'idx_tp_bus_trans_method');
         $this->addIndexSafely('transaction_payments', ['payment_for', 'paid_on'], 'idx_tp_payment_for_paid_on');
         $this->addIndexSafely('transaction_payments', ['business_id', 'paid_on'], 'idx_tp_bus_paid_on');
 

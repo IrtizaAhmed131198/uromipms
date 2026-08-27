@@ -5311,12 +5311,6 @@ class TransactionUtil extends Util
                 'bl.id'
             )
             ->leftJoin(
-                'transactions AS SR',
-                'transactions.id',
-                '=',
-                'SR.return_parent_id'
-            )
-            ->leftJoin(
                 'types_of_services AS tos',
                 'transactions.types_of_service_id',
                 '=',
@@ -5381,11 +5375,10 @@ class TransactionUtil extends Util
             DB::raw('(SELECT COALESCE(SUM(IF(TP.is_return = 1,-1*TP.amount,TP.amount)), 0) FROM transaction_payments AS TP WHERE
                     TP.transaction_id=transactions.id) as total_paid'),
             'bl.name as business_location',
-            DB::raw('COUNT(SR.id) as return_exists'),
-            DB::raw('(SELECT COALESCE(SUM(TP2.amount), 0) FROM transaction_payments AS TP2 WHERE
-                    TP2.transaction_id=SR.id ) as return_paid'),
-            DB::raw('COALESCE(SR.final_total, 0) as amount_return'),
-            'SR.id as return_transaction_id',
+            DB::raw('(SELECT COUNT(SR.id) FROM transactions AS SR WHERE SR.return_parent_id = transactions.id AND SR.type = "sell_return") as return_exists'),
+            DB::raw('(SELECT COALESCE(SUM(TP2.amount), 0) FROM transaction_payments AS TP2 JOIN transactions AS SR ON TP2.transaction_id = SR.id WHERE SR.return_parent_id = transactions.id AND SR.type = "sell_return") as return_paid'),
+            DB::raw('(SELECT COALESCE(SR.final_total, 0) FROM transactions AS SR WHERE SR.return_parent_id = transactions.id AND SR.type = "sell_return" LIMIT 1) as amount_return'),
+            DB::raw('(SELECT SR.id FROM transactions AS SR WHERE SR.return_parent_id = transactions.id AND SR.type = "sell_return" LIMIT 1) as return_transaction_id'),
             'tos.name as types_of_service_name',
             'transactions.service_custom_field_1',
             $total_items_select,
