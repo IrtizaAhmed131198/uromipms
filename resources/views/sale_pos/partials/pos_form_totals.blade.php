@@ -27,6 +27,7 @@
 								@endif
 							
 								<span class="tw-text-base md:tw-text-lg tw-font-semibold" id="total_discount">0</span>
+								<small id="discount_calculated_text" class="text-muted" style="font-size:13px; font-weight:600;"></small>
 							@endif
 								<input type="hidden" name="discount_type" id="discount_type" value="@if(empty($edit)){{'percentage'}}@else{{$transaction->discount_type}}@endif" data-default="percentage">
 

@@ -155,6 +155,18 @@
               </div>
             </div>
             @endif
+            <div class="col-sm-4">
+              <div class="form-group">
+                {!! Form::label('referral_commission_type', 'Staff Referral Bonus Type:') !!}
+                {!! Form::select('referral_commission_type', ['percentage' => 'Percentage (%)', 'fixed' => 'Fixed Amount'], $product->referral_commission_type ?? 'percentage', ['class' => 'form-control select2']); !!}
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="form-group">
+                {!! Form::label('referral_commission_amount', 'Staff Referral Bonus / Commission:') !!} @show_tooltip('Bonus or commission given to referring staff member when this specific product is sold.')
+                {!! Form::text('referral_commission_amount', @num_format($product->referral_commission_amount ?? 0), ['class' => 'form-control input_number', 'placeholder' => '0.00']); !!}
+              </div>
+            </div>
             <!-- include module fields -->
             @if(!empty($pos_module_data))
                 @foreach($pos_module_data as $key => $value)

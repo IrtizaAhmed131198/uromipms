@@ -564,34 +564,55 @@ class TransactionUtil extends Util
         $std_percent = (float) ($business->default_referral_commission_percent ?? 0);
         $extra_profit_percent = (float) ($business->default_extra_profit_commission_percent ?? 0);
 
-        // 1. Standard Referral Commission on sale total
+        $lines = TransactionSellLine::where('transaction_id', $transaction->id)
+            ->with(['product', 'variations'])
+            ->get();
+
         $std_commission = 0;
-        if ($std_percent > 0) {
-            $std_commission = ($transaction->final_total * $std_percent) / 100;
-        }
+        $total_extra_profit = 0;
 
-        // 2. Extra Profit Commission on items sold above predefined selling price
-        $extra_profit_commission = 0;
-        if ($extra_profit_percent > 0) {
-            $total_extra_profit = 0;
-            $lines = TransactionSellLine::where('transaction_id', $transaction->id)
-                ->with('variations')
-                ->get();
+        foreach ($lines as $line) {
+            $product = $line->product;
+            // Subtract any returned quantity from effective sold quantity
+            $quantity_returned = (float) ($line->quantity_returned ?? 0);
+            $quantity = max(0, (float) $line->quantity - $quantity_returned);
 
-            foreach ($lines as $line) {
-                if (!empty($line->variations)) {
-                    $default_price = (float) $line->variations->sell_price_inc_tax;
-                    $sold_price = (float) $line->unit_price_inc_tax;
-                    if ($sold_price > $default_price) {
-                        $diff = $sold_price - $default_price;
-                        $total_extra_profit += ($diff * (float) $line->quantity);
-                    }
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $line_total = (float) ($line->unit_price_inc_tax * $quantity);
+
+            // 1. Per-Product Standard Commission:
+            // Check if product has specific referral bonus configured
+            if (!empty($product) && !empty($product->referral_commission_amount) && (float)$product->referral_commission_amount > 0) {
+                if ($product->referral_commission_type == 'fixed') {
+                    // Fixed bonus per unit quantity sold
+                    $std_commission += ((float) $product->referral_commission_amount * $quantity);
+                } else {
+                    // Percentage of line total
+                    $std_commission += ($line_total * (float) $product->referral_commission_amount) / 100;
+                }
+            } elseif ($std_percent > 0) {
+                // Fallback to general business standard percentage if product has no specific bonus
+                $std_commission += ($line_total * $std_percent) / 100;
+            }
+
+            // 2. Extra Profit Commission on items sold above predefined selling price
+            if ($extra_profit_percent > 0 && !empty($line->variations)) {
+                $default_price = (float) $line->variations->sell_price_inc_tax;
+                $sold_price = (float) $line->unit_price_inc_tax;
+                if ($sold_price > $default_price) {
+                    $diff = $sold_price - $default_price;
+                    $total_extra_profit += ($diff * $quantity);
                 }
             }
+        }
 
-            if ($total_extra_profit > 0) {
-                $extra_profit_commission = ($total_extra_profit * $extra_profit_percent) / 100;
-            }
+        // Extra profit commission calculation
+        $extra_profit_commission = 0;
+        if ($extra_profit_percent > 0 && $total_extra_profit > 0) {
+            $extra_profit_commission = ($total_extra_profit * $extra_profit_percent) / 100;
         }
 
         Transaction::where('id', $transaction->id)->update([
@@ -6484,6 +6505,9 @@ class TransactionUtil extends Util
                 $productUtil->updateProductQuantity($sell_return->location_id, $sell_line->product_id, $sell_line->variation_id, $quantity, $quantity_before, null, false);
             }
         }
+
+        // Recalculate staff referral bonus on parent sale after return
+        $this->calculateAndSetReferralCommission($sell);
 
         return $sell_return;
     }

@@ -436,9 +436,18 @@ class SellReturnController extends Controller
                         }
                     }
 
+                    $return_parent_id = $sell_return->return_parent_id;
                     $sell_return->delete();
                     foreach ($transaction_payments as $payment) {
                         event(new TransactionPaymentDeleted($payment));
+                    }
+
+                    // Recalculate staff referral bonus on parent sale after return deleted
+                    if (!empty($return_parent_id)) {
+                        $parent_sell = Transaction::find($return_parent_id);
+                        if (!empty($parent_sell)) {
+                            $this->transactionUtil->calculateAndSetReferralCommission($parent_sell);
+                        }
                     }
                 }
 
