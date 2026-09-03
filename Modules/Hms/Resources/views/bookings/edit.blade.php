@@ -237,11 +237,21 @@
                     @endphp
                         <div class="col-xs-6">
                             <div class="form-group">
+                                <select name="discount_type_select" id="discount_type_select" class="form-control" @if($discount_percent_disable == 1) disabled @endif>
+                                    <option value="percentage" {{ (!empty($transaction->discount_type) && $transaction->discount_type == 'Percentage') ? 'selected' : '' }}>@lang('lang_v1.percentage')</option>
+                                    <option value="fixed" {{ (!empty($transaction->discount_type) && $transaction->discount_type == 'Fixed') ? 'selected' : '' }}>@lang('lang_v1.fixed')</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-xs-6">
+                            <div class="form-group">
                                 {!! Form::number('discount_percent', ($discount_percent_disable == 0 &&  $transaction->discount_amount > 0)? number_format($transaction->discount_amount, 2)  : null, [
                                     'class' => 'form-control',
                                     'id' => 'discount_percent',
                                     'disabled' => $discount_percent_disable == 1 ? 'disabled' : null,
-                                    'placeholder' => __('hms::lang.discount_percent'),
+                                    'placeholder' => __('hms::lang.discount'),
+                                    'step' => 'any',
+                                    'min' => '0',
                                 ]) !!}
                             </div>
                         </div>
@@ -775,11 +785,22 @@
                     var room_price = parseFloat(room_price);
 
                     if($('#discount_percent').val() != '' && $('#discount_percent').val() > 0){
-                       discount = ($('#discount_percent').val() * (extra + room_price) / 100)
-                       total_discount = discount;
-                       coupon_id = null;
-                       $('#discount_type').val('Percentage');
-                       $('#total_discount').val($('#discount_percent').val());
+                       var discount_val = parseFloat($('#discount_percent').val());
+                       var selected_discount_type = $('#discount_type_select').val();
+                       
+                       if (selected_discount_type == 'percentage') {
+                           discount = (discount_val * (extra + room_price) / 100);
+                           total_discount = discount;
+                           coupon_id = null;
+                           $('#discount_type').val('Percentage');
+                           $('#total_discount').val(discount_val);
+                       } else {
+                           discount = discount_val;
+                           total_discount = discount;
+                           coupon_id = null;
+                           $('#discount_type').val('Fixed');
+                           $('#total_discount').val(discount_val);
+                       }
                        $('.total_discount_show').text(__currency_trans_from_en(total_discount.toFixed(2) , true));
                     }
 
@@ -1154,7 +1175,7 @@
             }
 
               // discount side show
-              $("#discount_percent").keyup(function(){
+              $("#discount_percent").on('keyup change', function(){
                 
                 if($(this).val() > 0){
                     $('#coupon_code').prop('disabled', true);
@@ -1165,6 +1186,12 @@
                     
                 }
 
+            });
+
+            $("#discount_type_select").on('change', function() {
+                if ($('#discount_percent').val() > 0) {
+                    calculateAllPrice();
+                }
             });
 
             // coupon hide show
