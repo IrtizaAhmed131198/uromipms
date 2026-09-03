@@ -356,7 +356,11 @@
 	                        <td class="description">
 	                        	<div style="display:flex; width: 100%;">
 	                        		<p class="m-0 mt-5" style="white-space: nowrap;">#{{$loop->iteration}}.&nbsp;</p>
-	                        		<p class="text-left m-0 mt-5 pull-left">{{$line['name']}}  
+	                        		<p class="text-left m-0 mt-5 pull-left">
+	                        			@if(!empty($line['image']))
+	                        				<img src="{{$line['image']}}" alt="Image" width="45" style="float: left; margin-right: 8px; border-radius: 4px;">
+	                        			@endif
+	                        			{{$line['name']}}  
 			                        	@if(!empty($line['sub_sku'])), {{$line['sub_sku']}} @endif @if(!empty($line['brand'])), {{$line['brand']}} @endif @if(!empty($line['cat_code'])), {{$line['cat_code']}}@endif
 			                        	@if(!empty($line['product_custom_fields'])), {{$line['product_custom_fields']}} @endif
 			                        	@if(!empty($line['product_description']))
