@@ -12,7 +12,7 @@
     "Project": true,
     "Repair": true,
     "Spreadsheet": true,
-    "Superadmin": true,
+    "Superadmin": false,
     "Woocommerce": true,
     "AiAssistance": true,
     "Hms": true,
