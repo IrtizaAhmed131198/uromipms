@@ -100,7 +100,7 @@ class HmsBookingController extends Controller
                 ->leftjoin('contacts as c', 'transactions.contact_id', '=', 'c.id')
                 ->where('transactions.type', 'hms_booking')
                 ->select('transactions.*', 'c.name as c_name', DB::raw('COALESCE((SELECT SUM(IF(TP.is_return = 1,-1*TP.amount,TP.amount)) FROM transaction_payments AS TP WHERE
-                        TP.transaction_id=transactions.id), 0) as total_paid'));
+                        TP.transaction_id=transactions.id), 0) as total_paid'), DB::raw("(SELECT GROUP_CONCAT(r.room_number SEPARATOR ', ') FROM hms_booking_lines AS hbl LEFT JOIN hms_rooms AS r ON r.id = hbl.hms_room_id WHERE hbl.transaction_id = transactions.id) as room_numbers"));
 
             // filter with contact
             if ($request->customer_id) {

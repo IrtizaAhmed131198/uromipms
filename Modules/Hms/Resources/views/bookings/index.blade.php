@@ -71,6 +71,10 @@
                         </th>
 
                         <th>
+                            @lang('hms::lang.room_no')
+                        </th>
+
+                        <th>
                             @lang('hms::lang.stay')
                         </th>
                         <th>
@@ -149,11 +153,17 @@
                         },
                     },
                     aaSorting: [
-                        [9, 'desc']
+                        [10, 'desc']
                     ],
                     columns: [{
                             data: 'ref_no',
                             name: 'ref_no'
+                        },
+                        {
+                            data: 'room_numbers',
+                            name: 'room_numbers',
+                            orderable: false,
+                            "searchable": false
                         },
                         {
                             data: 'stay',
