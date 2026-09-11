@@ -226,6 +226,24 @@
 						</div>
 					</div>
 				@endif
+
+				<div class="col-sm-3">
+					<div class="form-group">
+						{!! Form::label('referral_code', 'Staff Referral Code:') !!}
+						<div class="input-group">
+							<span class="input-group-addon">
+								<i class="fa fa-user-tag text-primary"></i>
+							</span>
+							{!! Form::text('referral_code', null, ['class' => 'form-control', 'id' => 'staff_referral_code', 'placeholder' => 'Staff Referral Code']); !!}
+							<span class="input-group-btn">
+								<button type="button" class="btn btn-default text-primary" id="btn_validate_referral_code" title="Verify Referral Code">
+									<i class="fa fa-check"></i>
+								</button>
+							</span>
+						</div>
+						<small id="referral_code_msg" style="display:none; font-weight:600; padding:2px 5px;"></small>
+					</div>
+				</div>
 				@if($sale_type != 'sales_order')
 					<div class="col-sm-3">
 						<div class="form-group">

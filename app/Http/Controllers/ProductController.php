@@ -481,6 +481,8 @@ class ProductController extends Controller
                 'product_custom_field18',
                 'product_custom_field19',
                 'product_custom_field20',
+                'referral_commission_type',
+                'referral_commission_amount',
             ];
 
             $module_form_fields = $this->moduleUtil->getModuleFormField('product_form_fields');
@@ -526,6 +528,8 @@ class ProductController extends Controller
             $common_settings = session()->get('business.common_settings');
 
             $product_details['warranty_id'] = !empty($request->input('warranty_id')) ? $request->input('warranty_id') : null;
+            $product_details['referral_commission_type'] = !empty($request->input('referral_commission_type')) ? $request->input('referral_commission_type') : 'percentage';
+            $product_details['referral_commission_amount'] = !empty($request->input('referral_commission_amount')) ? $this->productUtil->num_uf($request->input('referral_commission_amount')) : 0;
 
             DB::beginTransaction();
 
@@ -797,6 +801,8 @@ class ProductController extends Controller
             $product->sub_unit_ids = !empty($product_details['sub_unit_ids']) ? $product_details['sub_unit_ids'] : null;
             $product->preparation_time_in_minutes = $product_details['preparation_time_in_minutes'];
             $product->warranty_id = !empty($request->input('warranty_id')) ? $request->input('warranty_id') : null;
+            $product->referral_commission_type = !empty($request->input('referral_commission_type')) ? $request->input('referral_commission_type') : 'percentage';
+            $product->referral_commission_amount = !empty($request->input('referral_commission_amount')) ? $this->productUtil->num_uf($request->input('referral_commission_amount')) : 0;
             $product->secondary_unit_id = !empty($request->input('secondary_unit_id')) ? $request->input('secondary_unit_id') : null;
 
             if (!empty($request->input('enable_stock')) && $request->input('enable_stock') == 1) {

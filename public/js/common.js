@@ -640,3 +640,41 @@ function copyToClipboard(element_id) {
     temp.remove();
     toastr.success(LANG.copied_to_clipboard);
 }
+
+// Staff Referral Code Validation
+function checkStaffReferralCode() {
+    var elem = $('#staff_referral_code');
+    if (elem.length === 0) return;
+    var code = elem.val().trim();
+    var msgElem = $('#referral_code_msg');
+    if (code === '') {
+        msgElem.hide().text('');
+        return;
+    }
+    $.ajax({
+        url: '/sales/validate-referral-code',
+        data: { code: code },
+        dataType: 'json',
+        success: function(res) {
+            if (res.is_valid) {
+                msgElem.show().css('color', '#10b981').html('<i class="fa fa-check-circle"></i> ' + res.msg);
+            } else {
+                msgElem.show().css('color', '#ef4444').html('<i class="fa fa-times-circle"></i> ' + res.msg);
+            }
+        }
+    });
+}
+
+$(document).on('click', '#btn_validate_referral_code', function() {
+    checkStaffReferralCode();
+});
+
+$(document).on('blur', '#staff_referral_code', function() {
+    checkStaffReferralCode();
+});
+
+$(document).ready(function() {
+    if ($('#staff_referral_code').length > 0 && $('#staff_referral_code').val().trim() !== '') {
+        checkStaffReferralCode();
+    }
+});

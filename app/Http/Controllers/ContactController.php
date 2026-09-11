@@ -86,13 +86,19 @@ class ContactController extends Controller
 
         $users = User::forDropdown($business_id);
 
-        $customer_groups = [];
+        $business_locations = [];
+        $years = [];
         if ($type == 'customer') {
             $customer_groups = CustomerGroup::forDropdown($business_id);
+            $business_locations = BusinessLocation::forDropdown($business_id, true);
+            $current_year = (int) date('Y');
+            for ($y = $current_year + 1; $y >= 2020; $y--) {
+                $years[$y] = (string) $y;
+            }
         }
 
         return view('contact.index')
-            ->with(compact('type', 'reward_enabled', 'customer_groups', 'users'));
+            ->with(compact('type', 'reward_enabled', 'customer_groups', 'users', 'business_locations', 'years'));
     }
 
     /**
@@ -565,8 +571,10 @@ class ContactController extends Controller
         //Added check because $users is of no use if enable_contact_assign if false
         $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
+        $business_locations = BusinessLocation::forDropdown($business_id, false);
+
         return view('contact.create')
-            ->with(compact('types', 'customer_groups', 'selected_type', 'module_form_parts', 'users'));
+            ->with(compact('types', 'customer_groups', 'selected_type', 'module_form_parts', 'users', 'business_locations'));
     }
 
     /**
@@ -589,7 +597,11 @@ class ContactController extends Controller
             }
 
             $input = $request->only(['type', 'supplier_business_name',
-                'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'landline', 'alternate_number', 'city', 'state', 'country', 'address_line_1', 'address_line_2', 'customer_group_id', 'zip_code', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'dob', 'shipping_custom_field_details', 'assigned_to_users', ]);
+                'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'landline', 'alternate_number', 'city', 'state', 'country', 'address_line_1', 'address_line_2', 'customer_group_id', 'zip_code', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'dob', 'shipping_custom_field_details', 'assigned_to_users', 'business_location_id', ]);
+
+            if (empty($input['business_location_id'])) {
+                unset($input['business_location_id']);
+            }
 
             $name_array = [];
 
@@ -688,7 +700,7 @@ class ContactController extends Controller
 
         $contact_dropdown = Contact::contactDropdown($business_id, false, false);
 
-        $business_locations = BusinessLocation::forDropdown($business_id, true);
+        $business_locations = BusinessLocation::forDropdown($business_id, false);
 
         //get contact view type : ledger, notes etc.
         $view_type = request()->get('view');
@@ -758,8 +770,10 @@ class ContactController extends Controller
             //Added check because $users is of no use if enable_contact_assign if false
             $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
+            $business_locations = BusinessLocation::forDropdown($business_id, false);
+
             return view('contact.edit')
-                ->with(compact('contact', 'types', 'customer_groups', 'opening_balance', 'users'));
+                ->with(compact('contact', 'types', 'customer_groups', 'opening_balance', 'users', 'business_locations'));
         }
     }
 
@@ -779,7 +793,9 @@ class ContactController extends Controller
         if (request()->ajax()) {
             try {
                 $input = $request->only(['type', 'supplier_business_name', 'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'address_line_1', 'address_line_2', 'zip_code', 'dob', 'alternate_number', 'city', 'state', 'country', 'landline', 'customer_group_id', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'shipping_custom_field_details', 'export_custom_field_1', 'export_custom_field_2', 'export_custom_field_3', 'export_custom_field_4', 'export_custom_field_5',
-                    'export_custom_field_6', 'assigned_to_users', ]);
+                    'export_custom_field_6', 'assigned_to_users', 'business_location_id', ]);
+
+                $input['business_location_id'] = !empty($input['business_location_id']) ? $input['business_location_id'] : null;
 
                 $name_array = [];
 
@@ -1674,5 +1690,107 @@ class ContactController extends Controller
             'is_mobile_exists' => ! empty($contacts),
             'msg' => __('lang_v1.mobile_already_registered', ['contacts' => implode(', ', $contacts), 'mobile' => $mobile_number]),
         ];
+    }
+
+    /**
+     * Returns customer rankings by total purchase value for a specific year
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getCustomerRankings(Request $request)
+    {
+        if (! auth()->user()->can('customer.view') && ! auth()->user()->can('customer.view_own')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        if ($request->ajax()) {
+            $year = $request->input('year', date('Y'));
+            $location_id = $request->input('location_id', null);
+
+            $query = Contact::where('contacts.business_id', $business_id)
+                ->where('contacts.is_default', 0)
+                ->whereIn('contacts.type', ['customer', 'both'])
+                ->join('transactions as t', 'contacts.id', '=', 't.contact_id')
+                ->leftJoin('business_locations as bl', 'contacts.business_location_id', '=', 'bl.id')
+                ->where('t.type', 'sell')
+                ->where('t.status', 'final');
+
+            if (!empty($year)) {
+                $query->whereYear('t.transaction_date', $year);
+            }
+
+            if (!empty($location_id)) {
+                $query->where(function($q) use ($location_id) {
+                    $q->where('t.location_id', $location_id)
+                      ->orWhere('contacts.business_location_id', $location_id);
+                });
+            }
+
+            if (auth()->check() && ! auth()->user()->can('customer.view') && auth()->user()->can('customer.view_own')) {
+                $query->onlyOwnContact();
+            }
+
+            $query->select([
+                'contacts.id',
+                'contacts.contact_id',
+                'contacts.name',
+                'contacts.supplier_business_name',
+                'contacts.mobile',
+                'contacts.email',
+                'contacts.contact_status',
+                'bl.name as registered_branch_name',
+                DB::raw('SUM(t.final_total) as total_purchase_amount'),
+                DB::raw('COUNT(t.id) as number_of_purchases'),
+                DB::raw('MAX(t.transaction_date) as last_purchase_date')
+            ])
+            ->groupBy('contacts.id', 'contacts.contact_id', 'contacts.name', 'contacts.supplier_business_name', 'contacts.mobile', 'contacts.email', 'contacts.contact_status', 'bl.name')
+            ->orderBy('total_purchase_amount', 'desc');
+
+            $counter = 0;
+            return Datatables::of($query)
+                ->addColumn('rank', function ($row) use (&$counter) {
+                    $counter++;
+                    if ($counter == 1) {
+                        return '<span class="badge" style="background-color: #f39c12 !important; color: #fff; font-size: 13px; padding: 5px 10px; border-radius: 6px;"><i class="fa fa-trophy"></i> #1</span>';
+                    } elseif ($counter == 2) {
+                        return '<span class="badge" style="background-color: #95a5a6 !important; color: #fff; font-size: 13px; padding: 5px 10px; border-radius: 6px;"><i class="fa fa-medal"></i> #2</span>';
+                    } elseif ($counter == 3) {
+                        return '<span class="badge" style="background-color: #d35400 !important; color: #fff; font-size: 13px; padding: 5px 10px; border-radius: 6px;"><i class="fa fa-award"></i> #3</span>';
+                    } else {
+                        return '<span class="badge" style="background-color: #e2e8f0; color: #475569; font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 6px;">#' . $counter . '</span>';
+                    }
+                })
+                ->editColumn('name', function ($row) {
+                    $name = $row->name;
+                    if (!empty($row->supplier_business_name)) {
+                        $name = $row->supplier_business_name . ' (' . $name . ')';
+                    }
+                    $code = !empty($row->contact_id) ? '<br><small class="text-muted"><i class="fa fa-id-card"></i> ' . $row->contact_id . '</small>' : '';
+                    return '<strong>' . $name . '</strong>' . $code;
+                })
+                ->editColumn('total_purchase_amount', function ($row) {
+                    return '<strong class="display_currency text-success" data-currency_symbol="true" style="font-size: 15px;">' . ($row->total_purchase_amount ? $this->transactionUtil->num_f($row->total_purchase_amount, true) : '0') . '</strong>';
+                })
+                ->editColumn('number_of_purchases', function ($row) {
+                    return '<span class="label label-primary" style="font-size: 12px; padding: 4px 8px; border-radius: 4px;">' . $row->number_of_purchases . ' ' . __('sale.sells') . '</span>';
+                })
+                ->editColumn('last_purchase_date', function ($row) {
+                    if (empty($row->last_purchase_date)) {
+                        return '—';
+                    }
+                    return $this->transactionUtil->format_date($row->last_purchase_date, false);
+                })
+                ->editColumn('registered_branch_name', function ($row) {
+                    return !empty($row->registered_branch_name) ? '<span class="text-info"><i class="fa fa-building"></i> ' . $row->registered_branch_name . '</span>' : '—';
+                })
+                ->addColumn('action', function ($row) {
+                    return '<a href="' . action([\App\Http\Controllers\ContactController::class, 'show'], [$row->id]) . '" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-info" target="_blank"><i class="fa fa-eye"></i> ' . __('messages.view') . '</a>';
+                })
+                ->rawColumns(['rank', 'name', 'total_purchase_amount', 'number_of_purchases', 'last_purchase_date', 'registered_branch_name', 'action'])
+                ->make(true);
+        }
     }
 }

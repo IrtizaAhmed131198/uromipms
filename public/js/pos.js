@@ -2171,6 +2171,12 @@ function pos_discount(total_amount) {
 
     $('span#total_discount').text(__currency_trans_from_en(discount, false));
 
+    if (calculation_type == 'percentage' && calculation_amount > 0) {
+        $('#discount_calculated_text').text(' (' + calculation_amount + '%)');
+    } else {
+        $('#discount_calculated_text').text('');
+    }
+
     return discount;
 }
 

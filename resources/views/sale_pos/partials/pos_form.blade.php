@@ -91,6 +91,23 @@
 			</div>
 		</div>
 	@endif
+
+	<div class="col-md-4 col-sm-6">
+		<div class="form-group" style="margin-bottom: 5px;">
+			<div class="input-group">
+				<span class="input-group-addon" title="Staff Referral Code">
+					<i class="fa fa-user-tag text-primary"></i>
+				</span>
+				{!! Form::text('referral_code', !empty($transaction->referral_code) ? $transaction->referral_code : null, ['class' => 'form-control', 'id' => 'staff_referral_code', 'placeholder' => 'Staff Referral Code']); !!}
+				<span class="input-group-btn">
+					<button type="button" class="btn btn-default text-primary" id="btn_validate_referral_code" title="Verify Referral Code">
+						<i class="fa fa-check"></i>
+					</button>
+				</span>
+			</div>
+			<small id="referral_code_msg" style="display:none; font-weight:600; padding:2px 5px;"></small>
+		</div>
+	</div>
 	@if(config('constants.enable_sell_in_diff_currency') == true)
 		<div class="col-md-4 col-sm-6">
 			<div class="form-group">
@@ -225,6 +242,9 @@
 					<th class="tex-center tw-text-sm md:!tw-text-base tw-font-bold @if(!empty($pos_settings['inline_service_staff'])) col-md-3 @else col-md-4 @endif">	
 						@lang('sale.product') @show_tooltip(__('lang_v1.tooltip_sell_product_column'))
 					</th>
+					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2">
+						@lang('sale.unit_price')
+					</th>
 					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-3">
 						@lang('sale.qty')
 					</th>
@@ -233,9 +253,6 @@
 							@lang('restaurant.service_staff')
 						</th>
 					@endif
-					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2 {{$hide_tax}}">
-						@lang('sale.price_inc_tax')
-					</th>
 					<th class="text-center tw-text-sm md:!tw-text-base tw-font-bold col-md-2">
 						@lang('sale.subtotal')
 					</th>

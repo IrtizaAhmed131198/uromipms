@@ -23,6 +23,7 @@ use App\Transaction;
 use App\TransactionPayment;
 use App\TransactionSellLine;
 use App\TransactionSellLinesPurchaseLines;
+use App\User;
 use App\Variation;
 use App\VariationLocationDetails;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,8 @@ class TransactionUtil extends Util
     {
         $sale_type = !empty($input['type']) ? $input['type'] : 'sell';
         $invoice_scheme_id = !empty($input['invoice_scheme_id']) ? $input['invoice_scheme_id'] : null;
-        $invoice_no = !empty($input['invoice_no']) ? $input['invoice_no'] : $this->getInvoiceNumber($business_id, $input['status'], $input['location_id'], $invoice_scheme_id, $sale_type);
+        $is_quotation = (!empty($input['is_quotation']) && $input['is_quotation'] == 1) || (!empty($input['status']) && $input['status'] == 'quotation') || (!empty($input['sub_status']) && $input['sub_status'] == 'quotation') || $sale_type == 'quotation';
+        $invoice_no = !empty($input['invoice_no']) ? $input['invoice_no'] : $this->getInvoiceNumber($business_id, $input['status'], $input['location_id'], $invoice_scheme_id, $sale_type, $is_quotation);
 
         $final_total = $uf_data ? $this->num_uf($input['final_total']) : $input['final_total'];
 
@@ -56,6 +58,16 @@ class TransactionUtil extends Util
             $pay_term_number = $contact->pay_term_number;
             $pay_term_type = $contact->pay_term_type;
         }
+        $referral_code = !empty($input['referral_code']) ? trim($input['referral_code']) : null;
+        $referral_staff_user_id = null;
+        if (!empty($referral_code)) {
+            $referral_staff = $this->findReferralStaff($business_id, $referral_code);
+            if ($referral_staff) {
+                $referral_staff_user_id = $referral_staff->id;
+                $referral_code = $referral_staff->referral_code; // Use the stored code
+            }
+        }
+
         $transaction = Transaction::create([
             'business_id' => $business_id,
             'location_id' => $input['location_id'],
@@ -63,6 +75,8 @@ class TransactionUtil extends Util
             'status' => $input['status'],
             'sub_status' => !empty($input['sub_status']) ? $input['sub_status'] : null,
             'contact_id' => $input['contact_id'],
+            'referral_code' => $referral_code,
+            'referral_staff_user_id' => $referral_staff_user_id,
             'customer_group_id' => !empty($input['customer_group_id']) ? $input['customer_group_id'] : null,
             'invoice_no' => $invoice_no,
             'ref_no' => '',
@@ -186,10 +200,22 @@ class TransactionUtil extends Util
             $pay_term_type = $contact->pay_term_type;
         }
 
+        $referral_code = !empty($input['referral_code']) ? trim($input['referral_code']) : null;
+        $referral_staff_user_id = null;
+        if (!empty($referral_code)) {
+            $referral_staff = $this->findReferralStaff($business_id, $referral_code);
+            if ($referral_staff) {
+                $referral_staff_user_id = $referral_staff->id;
+                $referral_code = $referral_staff->referral_code; // Use the stored code
+            }
+        }
+
         $update_date = [
             'status' => $input['status'],
             'invoice_no' => !empty($input['invoice_no']) ? $input['invoice_no'] : $invoice_no,
             'contact_id' => $input['contact_id'],
+            'referral_code' => $referral_code,
+            'referral_staff_user_id' => $referral_staff_user_id,
             'customer_group_id' => $input['customer_group_id'],
             'total_before_tax' => $invoice_total['total_before_tax'],
             'tax_id' => $input['tax_rate_id'],
@@ -485,11 +511,115 @@ class TransactionUtil extends Util
             $transaction->sell_lines()->saveMany($modifiers_formatted);
         }
 
+        // Calculate and save staff referral commissions
+        $this->calculateAndSetReferralCommission($transaction);
+
         if ($return_deleted) {
             return $deleted_lines;
         }
 
         return true;
+    }
+
+    /**
+     * Calculate and save standard + extra-profit referral commission for referring staff
+     *
+     * @param \App\Transaction $transaction
+     * @return void
+     */
+    /**
+     * Find a referral staff member by code, using flexible matching
+     * (exact, with REF: prefix, with REF- prefix, or stripped/uppercased)
+     *
+     * @param int $business_id
+     * @param string $code
+     * @return \App\User|null
+     */
+    private function findReferralStaff($business_id, $code)
+    {
+        $code = trim($code);
+        $clean_code = str_replace([' ', '-', ':'], '', strtoupper($code));
+
+        return User::where('business_id', $business_id)
+            ->where(function($q) use ($code, $clean_code) {
+                $q->where('referral_code', $code)
+                  ->orWhere('referral_code', 'REF: ' . $code)
+                  ->orWhere('referral_code', 'REF-' . $code)
+                  ->orWhereRaw("REPLACE(REPLACE(REPLACE(UPPER(referral_code), ' ', ''), '-', ''), ':', '') = ?", [$clean_code]);
+            })
+            ->first();
+    }
+
+    public function calculateAndSetReferralCommission($transaction)
+    {
+        if (empty($transaction) || (empty($transaction->referral_staff_user_id) && empty($transaction->referral_code))) {
+            return;
+        }
+
+        $business = Business::find($transaction->business_id);
+        if (!$business) {
+            return;
+        }
+
+        $std_percent = (float) ($business->default_referral_commission_percent ?? 0);
+        $extra_profit_percent = (float) ($business->default_extra_profit_commission_percent ?? 0);
+
+        $lines = TransactionSellLine::where('transaction_id', $transaction->id)
+            ->with(['product', 'variations'])
+            ->get();
+
+        $std_commission = 0;
+        $total_extra_profit = 0;
+
+        foreach ($lines as $line) {
+            $product = $line->product;
+            // Subtract any returned quantity from effective sold quantity
+            $quantity_returned = (float) ($line->quantity_returned ?? 0);
+            $quantity = max(0, (float) $line->quantity - $quantity_returned);
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $line_total = (float) ($line->unit_price_inc_tax * $quantity);
+
+            // 1. Per-Product Standard Commission:
+            // Check if product has specific referral bonus configured
+            if (!empty($product) && !empty($product->referral_commission_amount) && (float)$product->referral_commission_amount > 0) {
+                if ($product->referral_commission_type == 'fixed') {
+                    // Fixed bonus per unit quantity sold
+                    $std_commission += ((float) $product->referral_commission_amount * $quantity);
+                } else {
+                    // Percentage of line total
+                    $std_commission += ($line_total * (float) $product->referral_commission_amount) / 100;
+                }
+            } elseif ($std_percent > 0) {
+                // Fallback to general business standard percentage if product has no specific bonus
+                $std_commission += ($line_total * $std_percent) / 100;
+            }
+
+            // 2. Extra Profit Commission on items sold above predefined selling price
+            if ($extra_profit_percent > 0 && !empty($line->variations)) {
+                $default_price = (float) $line->variations->sell_price_inc_tax;
+                $sold_price = (float) $line->unit_price_inc_tax;
+                if ($sold_price > $default_price) {
+                    $diff = $sold_price - $default_price;
+                    $total_extra_profit += ($diff * $quantity);
+                }
+            }
+        }
+
+        // Extra profit commission calculation
+        $extra_profit_commission = 0;
+        if ($extra_profit_percent > 0 && $total_extra_profit > 0) {
+            $extra_profit_commission = ($total_extra_profit * $extra_profit_percent) / 100;
+        }
+
+        Transaction::where('id', $transaction->id)->update([
+            'referral_standard_commission' => $std_commission,
+            'referral_extra_profit_commission' => $extra_profit_commission,
+            'referral_total_commission' => $std_commission + $extra_profit_commission,
+        ]);
     }
 
     private function updateSalesOrderLine($so_line_id, $new_qty, $old_qty = 0)
@@ -1011,8 +1141,31 @@ class TransactionUtil extends Util
                     : null;
         }
 
+        // Letterhead image from business settings
+        $output['letterhead_image'] = !empty($business_details->letterhead_image) && file_exists(public_path('uploads/business_logos/' . $business_details->letterhead_image)) ? asset('uploads/business_logos/' . $business_details->letterhead_image) : null;
+        $output['letterhead_image_path'] = !empty($business_details->letterhead_image) && file_exists(public_path('uploads/business_logos/' . $business_details->letterhead_image)) ? public_path('uploads/business_logos/' . $business_details->letterhead_image) : null;
+
+        // Footer image from business settings
+        $output['footer_image'] = !empty($business_details->footer_image) && file_exists(public_path('uploads/business_logos/' . $business_details->footer_image)) ? asset('uploads/business_logos/' . $business_details->footer_image) : null;
+        $output['footer_image_path'] = !empty($business_details->footer_image) && file_exists(public_path('uploads/business_logos/' . $business_details->footer_image)) ? public_path('uploads/business_logos/' . $business_details->footer_image) : null;
+
+        // Signature image from business settings
+        $output['signature_image'] = !empty($business_details->signature_image) && file_exists(public_path('uploads/business_logos/' . $business_details->signature_image)) ? asset('uploads/business_logos/' . $business_details->signature_image) : null;
+        $output['signature_image_path'] = !empty($business_details->signature_image) && file_exists(public_path('uploads/business_logos/' . $business_details->signature_image)) ? public_path('uploads/business_logos/' . $business_details->signature_image) : null;
+
+        // Quotation Terms
+        $output['quotation_terms'] = !empty($business_details->quotation_terms) ? $business_details->quotation_terms : null;
+
+        // Prepared by user
+        $creator = \App\User::find($transaction->created_by);
+        $output['prepared_by'] = !empty($creator) ? $creator->user_full_name : '';
+
         // Logo
         $output['logo'] = $il->show_logo != 0 && !empty($il->logo) && file_exists(public_path('uploads/invoice_logos/' . $il->logo)) ? asset('uploads/invoice_logos/' . $il->logo) : false;
+        if (empty($output['logo']) && !empty($business_details->logo) && file_exists(public_path('uploads/business_logos/' . $business_details->logo))) {
+            $output['logo'] = asset('uploads/business_logos/' . $business_details->logo);
+            $output['logo_path'] = public_path('uploads/business_logos/' . $business_details->logo);
+        }
 
         // Address
         $output['address'] = '';
@@ -1248,6 +1401,9 @@ class TransactionUtil extends Util
                 $output['invoice_heading'] .= ' ' . $il->invoice_heading_not_paid;
             }
         }
+
+        $output['is_quotation'] = ($transaction->is_quotation == 1 || ($transaction->status == 'draft' && empty($transaction->sub_status)) || $transaction->sub_status == 'quotation');
+        $output['sub_status'] = $transaction->sub_status;
 
         $output['date_label'] = $il->date_label;
         if (blank($il->date_time_format)) {
@@ -2065,6 +2221,9 @@ class TransactionUtil extends Util
                 'line_total_exc_tax' => $this->num_f($line->unit_price * $line->quantity, false, $business_details),
                 'line_total_exc_tax_uf' => $line->unit_price * $line->quantity,
                 'variation_id' => $variation->id,
+                'sub_sku' => !empty($variation->sub_sku) ? $variation->sub_sku : $product->sku,
+                'image' => !empty($product->image) ? asset('uploads/img/' . $product->image) : null,
+                'image_path' => !empty($product->image) && file_exists(public_path('uploads/img/' . $product->image)) ? public_path('uploads/img/' . $product->image) : null,
             ];
 
             $temp = [];
@@ -2328,9 +2487,14 @@ class TransactionUtil extends Util
      * @param  string  $location_id
      * @return string
      */
-    public function getInvoiceNumber($business_id, $status, $location_id, $invoice_scheme_id = null, $sale_type = null)
+    public function getInvoiceNumber($business_id, $status, $location_id, $invoice_scheme_id = null, $sale_type = null, $is_quotation = false)
     {
-        if ($status == 'final') {
+        if ($is_quotation || $sale_type == 'quotation' || $status == 'quotation') {
+            $ref_count = $this->setAndGetReferenceCount('quotation', $business_id);
+            $invoice_no = $this->generateReferenceNumber('quotation', $ref_count, $business_id, 'QT-');
+
+            return $invoice_no;
+        } elseif ($status == 'final') {
             if (empty($invoice_scheme_id)) {
                 $scheme = $this->getInvoiceScheme($business_id, $location_id);
             } else {
@@ -3902,24 +4066,34 @@ class TransactionUtil extends Util
 
             $query->where(function ($query) use ($date, $next_day) {
                 $query
-                    ->whereRaw("date(transaction_date) <= '$date'")
-                    ->orWhereRaw("date(transaction_date) = '$next_day' AND purchase.type='opening_stock' ");
+                    ->where('purchase.transaction_date', '<=', $date . ' 23:59:59')
+                    ->orWhere(function ($q2) use ($next_day) {
+                        $q2->whereBetween('purchase.transaction_date', [$next_day . ' 00:00:00', $next_day . ' 23:59:59'])
+                            ->where('purchase.type', 'opening_stock');
+                    });
             });
         } else {
-            $query->whereRaw("date(transaction_date) <= '$date'");
+            $query->where('purchase.transaction_date', '<=', $date . ' 23:59:59');
         }
 
+        $sale_end_datetime = $date . ' 23:59:59';
+        $sold_subquery = \DB::table('transaction_sell_lines_purchase_lines as tspl')
+            ->join('transaction_sell_lines as tsl', 'tspl.sell_line_id', '=', 'tsl.id')
+            ->join('transactions as sale', 'tsl.transaction_id', '=', 'sale.id')
+            ->where('sale.business_id', $business_id)
+            ->where('sale.transaction_date', '<=', $sale_end_datetime)
+            ->groupBy('tspl.purchase_line_id')
+            ->select(
+                'tspl.purchase_line_id',
+                \DB::raw('SUM(tspl.quantity - tspl.qty_returned) as total_sold')
+            );
+
+        $query->leftJoinSub($sold_subquery, 'sold_lines', function ($join) {
+            $join->on('purchase_lines.id', '=', 'sold_lines.purchase_line_id');
+        });
+
         $query->select(
-            DB::raw("SUM((purchase_lines.quantity - purchase_lines.quantity_returned - purchase_lines.quantity_adjusted -
-                            (SELECT COALESCE(SUM(tspl.quantity - tspl.qty_returned), 0) FROM 
-                            transaction_sell_lines_purchase_lines AS tspl
-                            JOIN transaction_sell_lines as tsl ON 
-                            tspl.sell_line_id=tsl.id 
-                            JOIN transactions as sale ON 
-                            tsl.transaction_id=sale.id 
-                            WHERE tspl.purchase_line_id = purchase_lines.id AND 
-                            date(sale.transaction_date) <= '$date') ) * $price_query_part
-                        ) as stock")
+            \DB::raw("SUM((purchase_lines.quantity - purchase_lines.quantity_returned - purchase_lines.quantity_adjusted - COALESCE(sold_lines.total_sold, 0)) * $price_query_part) as stock")
         );
 
         // Check for permitted locations of a user
@@ -5147,12 +5321,6 @@ class TransactionUtil extends Util
     public function getListSells($business_id, $sale_type = 'sell')
     {
         $sells = Transaction::leftJoin('contacts', 'transactions.contact_id', '=', 'contacts.id')
-            // ->leftJoin('transaction_payments as tp', 'transactions.id', '=', 'tp.transaction_id')
-            ->leftJoin('transaction_sell_lines as tsl', function ($join) {
-                $join
-                    ->on('transactions.id', '=', 'tsl.transaction_id')
-                    ->whereNull('tsl.parent_sell_line_id');
-            })
             ->leftJoin('users as u', 'transactions.created_by', '=', 'u.id')
             ->leftJoin('users as ss', 'transactions.res_waiter_id', '=', 'ss.id')
             ->leftJoin('users as dp', 'transactions.delivery_person', '=', 'dp.id')
@@ -5164,76 +5332,83 @@ class TransactionUtil extends Util
                 'bl.id'
             )
             ->leftJoin(
-                'transactions AS SR',
-                'transactions.id',
-                '=',
-                'SR.return_parent_id'
-            )
-            ->leftJoin(
                 'types_of_services AS tos',
                 'transactions.types_of_service_id',
                 '=',
                 'tos.id'
             )
             ->where('transactions.business_id', $business_id)
-            ->where('transactions.type', $sale_type)
-            ->select(
-                'transactions.id',
-                'transactions.transaction_date',
-                'transactions.type',
-                'transactions.is_direct_sale',
-                'transactions.invoice_no',
-                'transactions.invoice_no as invoice_no_text',
-                'contacts.name',
-                'contacts.mobile',
-                'contacts.contact_id',
-                'contacts.supplier_business_name',
-                'transactions.status',
-                'transactions.payment_status',
-                'transactions.final_total',
-                'transactions.tax_amount',
-                'transactions.discount_amount',
-                'transactions.discount_type',
-                'transactions.total_before_tax',
-                'transactions.rp_redeemed',
-                'transactions.rp_redeemed_amount',
-                'transactions.rp_earned',
-                'transactions.types_of_service_id',
-                'transactions.shipping_status',
-                'transactions.pay_term_number',
-                'transactions.pay_term_type',
-                'transactions.additional_notes',
-                'transactions.staff_note',
-                'transactions.shipping_details',
-                'transactions.document',
-                'transactions.shipping_custom_field_1',
-                'transactions.shipping_custom_field_2',
-                'transactions.shipping_custom_field_3',
-                'transactions.shipping_custom_field_4',
-                'transactions.shipping_custom_field_5',
-                'transactions.custom_field_1',
-                'transactions.custom_field_2',
-                'transactions.custom_field_3',
-                'transactions.custom_field_4',
-                DB::raw('DATE_FORMAT(transactions.transaction_date, "%Y/%m/%d") as sale_date'),
-                DB::raw("CONCAT(COALESCE(u.surname, ''),' ',COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) as added_by"),
-                DB::raw('(SELECT SUM(IF(TP.is_return = 1,-1*TP.amount,TP.amount)) FROM transaction_payments AS TP WHERE
-                        TP.transaction_id=transactions.id) as total_paid'),
-                'bl.name as business_location',
-                DB::raw('COUNT(SR.id) as return_exists'),
-                DB::raw('(SELECT SUM(TP2.amount) FROM transaction_payments AS TP2 WHERE
-                        TP2.transaction_id=SR.id ) as return_paid'),
-                DB::raw('COALESCE(SR.final_total, 0) as amount_return'),
-                'SR.id as return_transaction_id',
-                'tos.name as types_of_service_name',
-                'transactions.service_custom_field_1',
-                DB::raw('COUNT( DISTINCT tsl.id) as total_items'),
-                DB::raw("CONCAT(COALESCE(ss.surname, ''),' ',COALESCE(ss.first_name, ''),' ',COALESCE(ss.last_name,'')) as waiter"),
-                'tables.name as table_name',
-                DB::raw('SUM(tsl.quantity - tsl.so_quantity_invoiced) as so_qty_remaining'),
-                'transactions.is_export',
-                DB::raw("CONCAT(COALESCE(dp.surname, ''),' ',COALESCE(dp.first_name, ''),' ',COALESCE(dp.last_name,'')) as delivery_person")
-            );
+            ->where('transactions.type', $sale_type);
+
+        if ($sale_type == 'sales_order') {
+            $sells->leftJoin('transaction_sell_lines as tsl', function ($join) {
+                $join
+                    ->on('transactions.id', '=', 'tsl.transaction_id')
+                    ->whereNull('tsl.parent_sell_line_id');
+            });
+            $so_qty_remaining_select = DB::raw('SUM(tsl.quantity - tsl.so_quantity_invoiced) as so_qty_remaining');
+            $total_items_select = DB::raw('COUNT(DISTINCT tsl.id) as total_items');
+        } else {
+            $so_qty_remaining_select = DB::raw('0 as so_qty_remaining');
+            $total_items_select = DB::raw('(SELECT COUNT(tsl.id) FROM transaction_sell_lines as tsl WHERE tsl.transaction_id = transactions.id AND tsl.parent_sell_line_id IS NULL) as total_items');
+        }
+
+        $sells->select(
+            'transactions.id',
+            'transactions.transaction_date',
+            'transactions.type',
+            'transactions.is_direct_sale',
+            'transactions.invoice_no',
+            'transactions.invoice_no as invoice_no_text',
+            'contacts.name',
+            'contacts.mobile',
+            'contacts.contact_id',
+            'contacts.supplier_business_name',
+            'transactions.status',
+            'transactions.payment_status',
+            'transactions.final_total',
+            'transactions.tax_amount',
+            'transactions.discount_amount',
+            'transactions.discount_type',
+            'transactions.total_before_tax',
+            'transactions.rp_redeemed',
+            'transactions.rp_redeemed_amount',
+            'transactions.rp_earned',
+            'transactions.types_of_service_id',
+            'transactions.shipping_status',
+            'transactions.pay_term_number',
+            'transactions.pay_term_type',
+            'transactions.additional_notes',
+            'transactions.staff_note',
+            'transactions.shipping_details',
+            'transactions.document',
+            'transactions.shipping_custom_field_1',
+            'transactions.shipping_custom_field_2',
+            'transactions.shipping_custom_field_3',
+            'transactions.shipping_custom_field_4',
+            'transactions.shipping_custom_field_5',
+            'transactions.custom_field_1',
+            'transactions.custom_field_2',
+            'transactions.custom_field_3',
+            'transactions.custom_field_4',
+            DB::raw('DATE_FORMAT(transactions.transaction_date, "%Y/%m/%d") as sale_date'),
+            DB::raw("CONCAT(COALESCE(u.surname, ''),' ',COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) as added_by"),
+            DB::raw('(SELECT COALESCE(SUM(IF(TP.is_return = 1,-1*TP.amount,TP.amount)), 0) FROM transaction_payments AS TP WHERE
+                    TP.transaction_id=transactions.id) as total_paid'),
+            'bl.name as business_location',
+            DB::raw('(SELECT COUNT(SR.id) FROM transactions AS SR WHERE SR.return_parent_id = transactions.id AND SR.type = "sell_return") as return_exists'),
+            DB::raw('(SELECT COALESCE(SUM(TP2.amount), 0) FROM transaction_payments AS TP2 JOIN transactions AS SR ON TP2.transaction_id = SR.id WHERE SR.return_parent_id = transactions.id AND SR.type = "sell_return") as return_paid'),
+            DB::raw('(SELECT COALESCE(SR.final_total, 0) FROM transactions AS SR WHERE SR.return_parent_id = transactions.id AND SR.type = "sell_return" LIMIT 1) as amount_return'),
+            DB::raw('(SELECT SR.id FROM transactions AS SR WHERE SR.return_parent_id = transactions.id AND SR.type = "sell_return" LIMIT 1) as return_transaction_id'),
+            'tos.name as types_of_service_name',
+            'transactions.service_custom_field_1',
+            $total_items_select,
+            DB::raw("CONCAT(COALESCE(ss.surname, ''),' ',COALESCE(ss.first_name, ''),' ',COALESCE(ss.last_name,'')) as waiter"),
+            'tables.name as table_name',
+            $so_qty_remaining_select,
+            'transactions.is_export',
+            DB::raw("CONCAT(COALESCE(dp.surname, ''),' ',COALESCE(dp.first_name, ''),' ',COALESCE(dp.last_name,'')) as delivery_person")
+        );
 
         if ($sale_type == 'sell') {
             $sells->where('transactions.status', 'final');
@@ -6330,6 +6505,9 @@ class TransactionUtil extends Util
                 $productUtil->updateProductQuantity($sell_return->location_id, $sell_line->product_id, $sell_line->variation_id, $quantity, $quantity_before, null, false);
             }
         }
+
+        // Recalculate staff referral bonus on parent sale after return
+        $this->calculateAndSetReferralCommission($sell);
 
         return $sell_return;
     }

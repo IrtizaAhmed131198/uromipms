@@ -356,6 +356,13 @@ class Util
 
         $ref_digits = str_pad($ref_count, 4, 0, STR_PAD_LEFT);
 
+        if ($type == 'quotation') {
+            $prefix = !empty($prefix) ? (substr($prefix, -1) == '-' ? $prefix : $prefix . '-') : 'QT-';
+            $ref_year = \Carbon::now()->year;
+            $ref_digits = str_pad($ref_count, 6, '0', STR_PAD_LEFT);
+            return $prefix . $ref_year . '-' . $ref_digits;
+        }
+
         if (! in_array($type, ['contacts', 'business_location', 'username'])) {
             $ref_year = \Carbon::now()->year;
             $ref_number = $prefix.$ref_year.'/'.$ref_digits;
@@ -1648,6 +1655,10 @@ class Util
 
         $user_details['bank_details'] = ! empty($user_details['bank_details']) ? json_encode($user_details['bank_details']) : null;
 
+        $user_details['referral_code'] = !empty($request->input('referral_code'))
+            ? trim($request->input('referral_code'))
+            : $this->generateStaffReferralCode($business_id);
+
         $user_details['password'] = $user_details['allow_login'] ? Hash::make($user_details['password']) : null;
 
         if ($user_details['allow_login']) {
@@ -1856,4 +1867,19 @@ class Util
         return ['start' => $start, 'end' => $end];
     }
 
+    /**
+     * Generate unique referral code for a staff member
+     *
+     * @param int|null $business_id
+     * @return string
+     */
+    public function generateStaffReferralCode($business_id = null)
+    {
+        do {
+            $digits = rand(100000, 999999);
+            $code = 'REF: ' . $digits;
+        } while (\App\User::where('referral_code', $code)->exists());
+
+        return $code;
+    }
 }

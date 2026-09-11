@@ -49,7 +49,7 @@ return [
 
     'default_date_format' => 'm/d/Y', //Default date format to be used if session is not set. All valid formats can be found on https://www.php.net/manual/en/function.date.php
 
-    'new_notification_count_interval' => 60, //Interval to check for new notifications in seconds;Default is 60sec
+    'new_notification_count_interval' => 300, //Interval to check for new notifications in seconds;Default is 60sec (increased to 300 for shared hosting)
 
     'administrator_usernames' => env('ADMINISTRATOR_USERNAMES'),
     'allow_registration' => env('ALLOW_REGISTRATION', true),
@@ -77,7 +77,7 @@ return [
     'enable_crm_call_log' => false,
     'enable_product_bulk_edit' => false,  //Will be depreciated in future
     'enable_convert_draft_to_invoice' => false, //Experimental beta feature.
-    'enable_download_pdf' => false,         //Experimental feature
+    'enable_download_pdf' => env('ENABLE_DOWNLOAD_PDF', true),
     'invoice_scheme_separator' => '-',
     'show_payments_recovered_today' => false, //Displays payment recovered today table on dashboard
     'enable_b2b_marketplace' => false,

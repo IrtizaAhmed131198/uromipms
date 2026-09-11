@@ -46,10 +46,18 @@ class ManageUserController extends Controller
                         ->user()
                         ->where('is_cmmsn_agnt', 0)
                         ->select(['id', 'username',
-                            DB::raw("CONCAT(COALESCE(surname, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as full_name"), 'email', 'allow_login', ]);
+                            DB::raw("CONCAT(COALESCE(surname, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as full_name"), 'email', 'allow_login', 'referral_code', ]);
 
             return Datatables::of($users)
                 ->editColumn('username', '{{$username}} @if(empty($allow_login)) <span class="label bg-gray">@lang("lang_v1.login_not_allowed")</span>@endif')
+                ->editColumn('referral_code', function ($row) {
+                    if (empty($row->referral_code) || strpos($row->referral_code, 'REF: ') === false) {
+                        $code = $this->moduleUtil->generateStaffReferralCode($row->business_id);
+                        User::where('id', $row->id)->update(['referral_code' => $code]);
+                        $row->referral_code = $code;
+                    }
+                    return '<span class="badge" style="background:#10b981; font-size:12px; letter-spacing:0.5px; padding:4px 8px; border-radius:4px; font-weight:bold;">' . $row->referral_code . '</span>';
+                })
                 ->addColumn(
                     'role',
                     function ($row) {
@@ -60,23 +68,26 @@ class ManageUserController extends Controller
                 )
                 ->addColumn(
                     'action',
-                    '@can("user.update")
-                        <a href="{{action(\'App\Http\Controllers\ManageUserController@edit\', [$id])}}" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary"><i class="glyphicon glyphicon-edit"></i> @lang("messages.edit")</a>
-                        &nbsp;
-                    @endcan
-                    @can("user.view")
-                    <a href="{{action(\'App\Http\Controllers\ManageUserController@show\', [$id])}}" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-info"><i class="fa fa-eye"></i> @lang("messages.view")</a>
-                    &nbsp;
-                    @endcan
-                    @can("user.delete")
-                        <button data-href="{{action(\'App\Http\Controllers\ManageUserController@destroy\', [$id])}}" class="tw-dw-btn tw-dw-btn-outline tw-dw-btn-xs tw-dw-btn-error delete_user_button"><i class="glyphicon glyphicon-trash"></i> @lang("messages.delete")</button>
-                    @endcan'
+                    function ($row) {
+                        $html = '';
+                        if (auth()->user()->can('user.update')) {
+                            $html .= '<a href="' . action([\App\Http\Controllers\ManageUserController::class, 'edit'], [$row->id]) . '" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary"><i class="glyphicon glyphicon-edit"></i> ' . __('messages.edit') . '</a>&nbsp;';
+                        }
+                        if (auth()->user()->can('user.view')) {
+                            $html .= '<a href="' . action([\App\Http\Controllers\ManageUserController::class, 'show'], [$row->id]) . '" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-info"><i class="fa fa-eye"></i> ' . __('messages.view') . '</a>&nbsp;';
+                            $html .= '<button type="button" data-href="' . action([\App\Http\Controllers\ReportController::class, 'getStaffReferralBonusDetails'], [$row->id]) . '" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-success btn-modal" data-container=".referral_details_modal" title="Referral Bonus History"><i class="fa fa-trophy"></i> Bonus</button>&nbsp;';
+                        }
+                        if (auth()->user()->can('user.delete')) {
+                            $html .= '<button data-href="' . action([\App\Http\Controllers\ManageUserController::class, 'destroy'], [$row->id]) . '" class="tw-dw-btn tw-dw-btn-outline tw-dw-btn-xs tw-dw-btn-error delete_user_button"><i class="glyphicon glyphicon-trash"></i> ' . __('messages.delete') . '</button>';
+                        }
+                        return $html;
+                    }
                 )
                 ->filterColumn('full_name', function ($query, $keyword) {
                     $query->whereRaw("CONCAT(COALESCE(surname, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) like ?", ["%{$keyword}%"]);
                 })
                 ->removeColumn('id')
-                ->rawColumns(['action', 'username'])
+                ->rawColumns(['action', 'username', 'referral_code'])
                 ->make(true);
         }
 
@@ -173,6 +184,39 @@ class ManageUserController extends Controller
                     ->with(['contactAccess'])
                     ->find($id);
 
+        if (empty($user->referral_code) || strpos($user->referral_code, 'REF: ') === false) {
+            $user->referral_code = $this->moduleUtil->generateStaffReferralCode($business_id);
+            $user->save();
+        }
+
+        // Referral history & metrics
+        $referral_metrics = \App\Transaction::where('transactions.business_id', $business_id)
+            ->where('transactions.referral_staff_user_id', $user->id)
+            ->where('transactions.type', 'sell')
+            ->where('transactions.status', 'final')
+            ->selectRaw('
+                COUNT(id) as total_referred_sales,
+                COALESCE(SUM(final_total), 0) as total_sales_value,
+                COALESCE(SUM(referral_standard_commission), 0) as total_standard_commission,
+                COALESCE(SUM(referral_extra_profit_commission), 0) as total_extra_profit_commission,
+                COALESCE(SUM(referral_total_commission), 0) as grand_total_bonus
+            ')
+            ->first();
+
+        $referral_sales = \App\Transaction::where('transactions.business_id', $business_id)
+            ->where('transactions.referral_staff_user_id', $user->id)
+            ->where('transactions.type', 'sell')
+            ->where('transactions.status', 'final')
+            ->leftJoin('contacts', 'transactions.contact_id', '=', 'contacts.id')
+            ->leftJoin('business_locations', 'transactions.location_id', '=', 'business_locations.id')
+            ->select([
+                'transactions.*',
+                'contacts.name as customer_name',
+                'business_locations.name as location_name'
+            ])
+            ->orderBy('transactions.transaction_date', 'desc')
+            ->get();
+
         //Get user view part from modules
         $view_partials = $this->moduleUtil->getModuleData('moduleViewPartials', ['view' => 'manage_user.show', 'user' => $user]);
 
@@ -183,7 +227,7 @@ class ManageUserController extends Controller
            ->latest()
            ->get();
 
-        return view('manage_user.show')->with(compact('user', 'view_partials', 'users', 'activities'));
+        return view('manage_user.show')->with(compact('user', 'view_partials', 'users', 'activities', 'referral_metrics', 'referral_sales'));
     }
 
     /**
@@ -250,13 +294,19 @@ class ManageUserController extends Controller
                 'blood_group', 'contact_number', 'fb_link', 'twitter_link', 'social_media_1',
                 'social_media_2', 'permanent_address', 'current_address',
                 'guardian_name', 'custom_field_1', 'custom_field_2',
-                'custom_field_3', 'custom_field_4', 'id_proof_name', 'id_proof_number', 'cmmsn_percent', 'gender', 'max_sales_discount_percent', 'family_number', 'alt_number', 'is_enable_service_staff_pin']);
+                'custom_field_3', 'custom_field_4', 'id_proof_name', 'id_proof_number', 'cmmsn_percent', 'gender', 'max_sales_discount_percent', 'family_number', 'alt_number', 'is_enable_service_staff_pin', 'referral_code']);
 
             $user_data['status'] = ! empty($request->input('is_active')) ? 'active' : 'inactive';
 
             $user_data['is_enable_service_staff_pin'] = ! empty($request->input('is_enable_service_staff_pin')) ? true : false;
 
             $business_id = request()->session()->get('user.business_id');
+
+            if (empty($user_data['referral_code'])) {
+                $user_data['referral_code'] = $this->moduleUtil->generateStaffReferralCode($business_id);
+            } else {
+                $user_data['referral_code'] = trim($user_data['referral_code']);
+            }
 
             if (! isset($user_data['selected_contacts'])) {
                 $user_data['selected_contacts'] = 0;
@@ -268,6 +318,9 @@ class ManageUserController extends Controller
                 $user_data['allow_login'] = 0;
             } else {
                 $user_data['allow_login'] = 1;
+                if ($request->has('username') && ! empty(trim($request->input('username')))) {
+                    $user_data['username'] = trim($request->input('username'));
+                }
             }
 
             if (! empty($request->input('password'))) {

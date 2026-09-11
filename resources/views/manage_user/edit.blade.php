@@ -34,10 +34,16 @@
                 </div>
             </div>
             <div class="clearfix"></div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="form-group">
                   {!! Form::label('email', __( 'business.email' ) . ':*') !!}
                     {!! Form::text('email', $user->email, ['class' => 'form-control', 'required', 'placeholder' => __( 'business.email' ) ]); !!}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                  {!! Form::label('referral_code', 'Staff Referral Code:') !!} @show_tooltip('Unique code used for staff referral commissions.')
+                  {!! Form::text('referral_code', $user->referral_code, ['class' => 'form-control', 'placeholder' => 'Staff Referral Code' ]); !!}
                 </div>
             </div>
 
@@ -85,23 +91,21 @@
             </div>
             <div class="clearfix"></div>
             <div class="user_auth_fields @if(empty($user->allow_login)) hide @endif">
-            @if(empty($user->allow_login))
                 <div class="col-md-4">
                     <div class="form-group">
                       {!! Form::label('username', __( 'business.username' ) . ':') !!}
                       @if(!empty($username_ext))
                         <div class="input-group">
-                          {!! Form::text('username', null, ['class' => 'form-control', 'placeholder' => __( 'business.username' ) ]); !!}
+                          {!! Form::text('username', $user->username, ['class' => 'form-control', 'placeholder' => __( 'business.username' ) ]); !!}
                           <span class="input-group-addon">{{$username_ext}}</span>
                         </div>
                         <p class="help-block" id="show_username"></p>
                       @else
-                          {!! Form::text('username', null, ['class' => 'form-control', 'placeholder' => __( 'business.username' ) ]); !!}
+                          {!! Form::text('username', $user->username, ['class' => 'form-control', 'placeholder' => __( 'business.username' ) ]); !!}
                       @endif
                       <p class="help-block">@lang('lang_v1.username_help')</p>
                     </div>
                 </div>
-            @endif
             <div class="col-md-4">
                 <div class="form-group">
                   {!! Form::label('password', __( 'business.password' ) . ':') !!}
@@ -318,7 +322,7 @@
                         equalTo: 'Should be same as password'
                     },
                     username: {
-                        remote: 'Invalid username or User already exist'
+                        remote: 'User already exist'
                     },
                     email: {
                         remote: '{{ __("validation.unique", ["attribute" => __("business.email")]) }}'

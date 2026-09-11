@@ -35,6 +35,7 @@
                             <th>@lang( 'user.name' )</th>
                             <th>@lang( 'user.role' )</th>
                             <th>@lang( 'business.email' )</th>
+                            <th>Staff Referral Code</th>
                             <th>@lang( 'messages.action' )</th>
                         </tr>
                     </thead>
@@ -44,6 +45,10 @@
     @endcomponent
 
     <div class="modal fade user_modal" tabindex="-1" role="dialog" 
+    	aria-labelledby="gridSystemModalLabel">
+    </div>
+
+    <div class="modal fade referral_details_modal" tabindex="-1" role="dialog" 
     	aria-labelledby="gridSystemModalLabel">
     </div>
 
@@ -60,7 +65,7 @@
                     fixedHeader:false,
                     ajax: '/users',
                     columnDefs: [ {
-                        "targets": [4],
+                        "targets": [5],
                         "orderable": false,
                         "searchable": false
                     } ],
@@ -69,6 +74,7 @@
                         {"data":"full_name"},
                         {"data":"role"},
                         {"data":"email"},
+                        {"data":"referral_code"},
                         {"data":"action"}
                     ]
                 });

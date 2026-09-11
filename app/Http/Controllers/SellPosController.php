@@ -783,9 +783,13 @@ class SellPosController extends Controller
             $output['printer_config'] = $this->businessUtil->printerConfig($business_id, $location_details->printer_id);
             $output['data'] = $receipt_details;
         } else {
-            $layout = !empty($receipt_details->design) ? 'sale_pos.receipts.' . $receipt_details->design : 'sale_pos.receipts.classic';
-
-            $output['html_content'] = view($layout, compact('receipt_details'))->render();
+            if (!empty($receipt_details->is_quotation) && $receipt_details->is_quotation == true) {
+                $sub_status = !empty($receipt_details->sub_status) ? $receipt_details->sub_status : '';
+                $output['html_content'] = view('sale_pos.receipts.quotation_a4', compact('receipt_details', 'sub_status'))->render();
+            } else {
+                $layout = !empty($receipt_details->design) ? 'sale_pos.receipts.' . $receipt_details->design : 'sale_pos.receipts.classic';
+                $output['html_content'] = view($layout, compact('receipt_details'))->render();
+            }
         }
 
         return $output;
@@ -3187,6 +3191,10 @@ class SellPosController extends Controller
         $receipt_details = $receipt_contents['receipt_details'];
         $location_details = $receipt_contents['location_details'];
 
+        if (!file_exists(public_path('uploads/temp'))) {
+            @mkdir(public_path('uploads/temp'), 0777, true);
+        }
+
         // Generate pdf
         $body = view('sale_pos.receipts.download_quotation_pdf')
             ->with(compact('receipt_details', 'location_details', 'sub_status'))
@@ -3199,14 +3207,18 @@ class SellPosController extends Controller
             'autoLangToFont' => true,
             'autoVietnamese' => true,
             'autoArabic' => true,
-            'margin_top' => 8,
-            'margin_bottom' => 8,
+            'margin_top' => 6,
+            'margin_bottom' => 6,
+            'margin_left' => 8,
+            'margin_right' => 8,
             'format' => 'A4',
         ]);
 
         $mpdf->useSubstitutions = true;
-        $mpdf->SetWatermarkText($receipt_details->business_name, 0.1);
-        $mpdf->showWatermarkText = true;
+        if (!empty($receipt_details->business_name)) {
+            $mpdf->SetWatermarkText($receipt_details->business_name, 0.04);
+            $mpdf->showWatermarkText = true;
+        }
         $mpdf->SetTitle($pdf_name . '-' . $receipt_details->invoice_no . '.pdf');
         $mpdf->WriteHTML($body);
         $mpdf->Output($pdf_name . '-' . $receipt_details->invoice_no . '.pdf', 'I');
@@ -3400,6 +3412,44 @@ class SellPosController extends Controller
             }
 
             return $output;
+        }
+    }
+
+    /**
+     * Validate staff referral code via AJAX
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    public function validateReferralCode(Request $request)
+    {
+        $business_id = $request->session()->get('user.business_id');
+        $code = trim($request->input('code'));
+        $clean_code = str_replace([' ', '-', ':'], '', strtoupper($code));
+
+        $user = User::where('business_id', $business_id)
+                    ->where(function($q) use ($code, $clean_code) {
+                        $q->where('referral_code', $code)
+                          ->orWhere('referral_code', 'REF: ' . $code)
+                          ->orWhere('referral_code', 'REF-' . $code)
+                          ->orWhereRaw("REPLACE(REPLACE(REPLACE(UPPER(referral_code), ' ', ''), '-', ''), ':', '') = ?", [$clean_code]);
+                    })
+                    ->first();
+
+        if (!empty($user)) {
+            $name = $user->user_full_name ?? ($user->first_name . ' ' . $user->last_name);
+            return [
+                'is_valid' => true,
+                'user_id' => $user->id,
+                'name' => $name,
+                'referral_code' => $user->referral_code,
+                'msg' => 'Staff Verified: ' . $name . ' (' . $user->referral_code . ')',
+            ];
+        } else {
+            return [
+                'is_valid' => false,
+                'msg' => 'Invalid staff referral code',
+            ];
         }
     }
 }
