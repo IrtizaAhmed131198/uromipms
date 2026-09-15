@@ -634,9 +634,22 @@ class ProductController extends Controller
         }
 
         $business_id = request()->session()->get('user.business_id');
-        $details = $this->productUtil->getRackDetails($business_id, $id, true);
 
-        return view('product.show')->with(compact('details'));
+        if (request()->ajax()) {
+            $details = $this->productUtil->getRackDetails($business_id, $id, true);
+            return view('product.show')->with(compact('details'));
+        }
+
+        $product = Product::where('business_id', $business_id)->find($id);
+        if ($product) {
+            if (auth()->user()->can('product.update')) {
+                return redirect()->action([\App\Http\Controllers\ProductController::class, 'edit'], [$id]);
+            }
+            return redirect()->action([\App\Http\Controllers\ProductController::class, 'index']);
+        }
+
+        return redirect()->action([\App\Http\Controllers\ProductController::class, 'index'])
+            ->with('status', ['success' => 0, 'msg' => __('lang_v1.product_not_found')]);
     }
 
     /**
@@ -1720,6 +1733,13 @@ class ProductController extends Controller
             ));
         } catch (\Exception $e) {
             \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
+
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'msg' => __('messages.something_went_wrong')], 500);
+            }
+
+            return redirect()->action([\App\Http\Controllers\ProductController::class, 'index'])
+                ->with('status', ['success' => 0, 'msg' => __('messages.something_went_wrong')]);
         }
     }
 

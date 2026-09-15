@@ -175,8 +175,7 @@
         <div class="col-sm-4">
             <div class="form-group">
                 {!! Form::label('image', __('lang_v1.product_image') . ':') !!}
-                {!! Form::file('image', ['id' => 'upload_image', 'accept' => 'image/*',
-                'required' => $is_image_required, 'class' => 'upload-element']); !!}
+                {!! Form::file('image', array_merge(['id' => 'upload_image', 'accept' => 'image/*', 'class' => 'upload-element'], $is_image_required ? ['required' => 'required'] : [])); !!}
                 <small>
                     <p class="help-block">@lang('purchase.max_file_size', ['size' => (config('constants.document_size_limit') / 1000000)]) <br> @lang('lang_v1.aspect_ratio_should_be_1_1')</p>
                 </small>

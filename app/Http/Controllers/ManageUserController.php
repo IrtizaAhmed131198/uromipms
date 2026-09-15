@@ -45,18 +45,16 @@ class ManageUserController extends Controller
             $users = User::where('business_id', $business_id)
                         ->user()
                         ->where('is_cmmsn_agnt', 0)
-                        ->select(['id', 'username',
+                        ->select(['id', 'business_id', 'username',
                             DB::raw("CONCAT(COALESCE(surname, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as full_name"), 'email', 'allow_login', 'referral_code', ]);
 
             return Datatables::of($users)
                 ->editColumn('username', '{{$username}} @if(empty($allow_login)) <span class="label bg-gray">@lang("lang_v1.login_not_allowed")</span>@endif')
                 ->editColumn('referral_code', function ($row) {
-                    if (empty($row->referral_code) || strpos($row->referral_code, 'REF: ') === false) {
-                        $code = $this->moduleUtil->generateStaffReferralCode($row->business_id);
-                        User::where('id', $row->id)->update(['referral_code' => $code]);
-                        $row->referral_code = $code;
+                    if (!empty($row->referral_code)) {
+                        return '<span class="badge" style="background:#10b981; font-size:12px; letter-spacing:0.5px; padding:4px 8px; border-radius:4px; font-weight:bold;">' . e($row->referral_code) . '</span>';
                     }
-                    return '<span class="badge" style="background:#10b981; font-size:12px; letter-spacing:0.5px; padding:4px 8px; border-radius:4px; font-weight:bold;">' . $row->referral_code . '</span>';
+                    return '<span class="text-muted">—</span>';
                 })
                 ->addColumn(
                     'role',
@@ -184,7 +182,7 @@ class ManageUserController extends Controller
                     ->with(['contactAccess'])
                     ->find($id);
 
-        if (empty($user->referral_code) || strpos($user->referral_code, 'REF: ') === false) {
+        if (empty($user->referral_code)) {
             $user->referral_code = $this->moduleUtil->generateStaffReferralCode($business_id);
             $user->save();
         }
