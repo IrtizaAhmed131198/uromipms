@@ -86,16 +86,16 @@
                             {{ $room->arrival_formatted ?? 'N/A' }}
                         </strong>
                     </p>
+                    @if(!empty($room->actual_check_in))
                     <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 4px 0;">
+                        Checked In : <strong style="color:#fff;">{{ $room->actual_check_in }}</strong>
+                    </p>
+                    @endif
+                    <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 6px 0;">
                         Departure : <strong style="color:#fff;">
                             {{ $room->departure_formatted ?? 'None' }}
                         </strong>
                     </p>
-                    @if(!empty($room->actual_check_in))
-                    <p style="font-size:11px;color:rgba(255,255,255,0.85);margin:0 0 6px 0;">
-                        Checked In : <strong style="color:#fff;">{{ $room->actual_check_in }}</strong>
-                    </p>
-                    @endif
 
                     @if($room->arrival_at && $room->departure_at)
                         <div class="room-timer"

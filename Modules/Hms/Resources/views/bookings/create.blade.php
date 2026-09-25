@@ -70,7 +70,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             {!! Form::label('arrival_date', __('hms::lang.arrival_date') . ':') !!}
-                            {!! Form::text('arrival_date', request()->input('booking_date') ? @format_date(request()->input('booking_date')) : null, [
+                            {!! Form::text('arrival_date', request()->input('booking_date') ? @format_date(request()->input('booking_date')) : @format_date(\Carbon\Carbon::today()->format('Y-m-d')), [
                                 'class' => 'form-control date_picker',
                                 'placeholder' => __('hms::lang.arrival_date'),
                                 'readonly',
@@ -94,7 +94,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             {!! Form::label('departure_date', __('hms::lang.departure_date') . ':') !!}
-                            {!! Form::text('departure_date', request()->input('booking_date') ? @format_date(request()->input('booking_date')) : null, [
+                            {!! Form::text('departure_date', @format_date(\Carbon\Carbon::parse(request()->input('booking_date') ?? \Carbon\Carbon::today())->addDay()->format('Y-m-d')), [
                                 'class' => 'form-control departure_date',
                                 'placeholder' => __('hms::lang.departure_date'),
                                 'readonly',
@@ -231,12 +231,16 @@
                                 ]) !!}
                             </div>
                         </div>
+                        @php
+                            $default_arrival_date = request()->input('booking_date') ? request()->input('booking_date') : \Carbon\Carbon::today()->format('Y-m-d');
+                            $default_departure_date = \Carbon\Carbon::parse($default_arrival_date)->addDay()->format('Y-m-d');
+                        @endphp
                         <div class="col-md-6">
                             <div class="form-group">
                                 {!! Form::label('arrival_date', __('hms::lang.arrival_date') . ':') !!}
                                 {!! Form::text(
                                     'arrival_date',
-                                    request()->input('booking_date') ? @format_date(request()->input('booking_date')) : null,
+                                    @format_date($default_arrival_date),
                                     [
                                         'class' => 'form-control date_picker',
                                         'placeholder' => __('hms::lang.arrival_date'),
@@ -264,7 +268,7 @@
                                 {!! Form::label('departure_date', __('hms::lang.departure_date') . ':') !!}
                                 {!! Form::text(
                                     'departure_date',
-                                    request()->input('booking_date') ? @format_date(request()->input('booking_date')) : null,
+                                    @format_date($default_departure_date),
                                     [
                                         'class' => 'form-control departure_date',
                                         'placeholder' => __('hms::lang.departure_date'),
@@ -728,35 +732,38 @@
                 });
             });
 
-            var currentDate = new Date();
-            var currentDateTime = moment(currentDate);
+            var bookingDate = "{{ request()->input('booking_date') }}";
+            var arrivalMoment = bookingDate ? moment(bookingDate) : moment();
+            var departureMoment = arrivalMoment.clone().add(1, 'days');
 
             $('.date_picker').datetimepicker({
                 format: moment_date_format,
                 ignoreReadonly: true,
-                defaultDate: currentDateTime
+                defaultDate: arrivalMoment
             });
 
-            var bookingDate = "{{ request()->input('booking_date') }}";
-
-            if (!bookingDate) {
-                $('.departure_date').datetimepicker({
-                    format: moment_date_format,
-                    ignoreReadonly: true,
-                    defaultDate: currentDateTime,
-                    minDate: currentDateTime,
-                });
-            } else {
-                $('.departure_date').datetimepicker({
-                    format: moment_date_format,
-                    ignoreReadonly: true,
-                    defaultDate: currentDateTime,
-                });
-            }
+            $('.departure_date').datetimepicker({
+                format: moment_date_format,
+                ignoreReadonly: true,
+                defaultDate: departureMoment,
+                minDate: arrivalMoment,
+            });
 
             var initialDate;
             var previousDate;
             var changeEventBound = true;
+
+            function syncDepartureWithArrival(selectedDate) {
+                if (!selectedDate) return;
+                var depPicker = $('.departure_date').data('DateTimePicker');
+                if (depPicker) {
+                    depPicker.minDate(selectedDate);
+                    var currentDep = depPicker.date();
+                    if (!currentDep || currentDep.isSameOrBefore(selectedDate, 'day')) {
+                        depPicker.date(selectedDate.clone().add(1, 'days'));
+                    }
+                }
+            }
 
             $('.date_picker').on('dp.change', function(e) {
                 if (!changeEventBound) {
@@ -787,7 +794,7 @@
                             $(".booking_add_room table tbody tr").remove();
                             $('#coupon_code').val('');
                             initialDate = selectedDate;
-                            $('.departure_date').data('DateTimePicker').minDate(selectedDate);
+                            syncDepartureWithArrival(selectedDate);
                             calculateAllPrice();
                         } else {
                             initialDate = previousDate;
@@ -796,7 +803,7 @@
                         changeEventBound = true;
                     });
                 } else {
-                    $('.departure_date').data('DateTimePicker').minDate(selectedDate);
+                    syncDepartureWithArrival(selectedDate);
                     calculateAllPrice();
                 }
 

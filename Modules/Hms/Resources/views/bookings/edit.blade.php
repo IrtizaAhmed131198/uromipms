@@ -507,12 +507,13 @@
             $('.date_picker').datetimepicker({
                 format: moment_date_format,
                 ignoreReadonly: true,
+                useCurrent: false,
             });
 
             $('.departure_date').datetimepicker({
                 format: moment_date_format,
                 ignoreReadonly: true,
-                defaultDate: currentDateTime,
+                useCurrent: false,
             });
 
             var initialDate;
