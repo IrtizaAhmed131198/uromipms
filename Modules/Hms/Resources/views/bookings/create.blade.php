@@ -67,10 +67,17 @@
                             ]) !!}
                         </div>
                     </div>
+                    @php
+                        $top_business_tz = session('business.time_zone') ?? (auth()->check() ? optional(auth()->user()->business)->time_zone : null) ?? config('app.timezone');
+                        $top_default_arrival_date = request()->input('booking_date') 
+                            ? request()->input('booking_date') 
+                            : \Carbon\Carbon::now($top_business_tz)->format('Y-m-d');
+                        $top_default_departure_date = \Carbon\Carbon::parse($top_default_arrival_date, $top_business_tz)->addDay()->format('Y-m-d');
+                    @endphp
                     <div class="col-md-6">
                         <div class="form-group">
                             {!! Form::label('arrival_date', __('hms::lang.arrival_date') . ':') !!}
-                            {!! Form::text('arrival_date', request()->input('booking_date') ? @format_date(request()->input('booking_date')) : @format_date(\Carbon\Carbon::today()->format('Y-m-d')), [
+                            {!! Form::text('arrival_date', @format_date($top_default_arrival_date), [
                                 'class' => 'form-control date_picker',
                                 'placeholder' => __('hms::lang.arrival_date'),
                                 'readonly',
@@ -94,7 +101,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             {!! Form::label('departure_date', __('hms::lang.departure_date') . ':') !!}
-                            {!! Form::text('departure_date', @format_date(\Carbon\Carbon::parse(request()->input('booking_date') ?? \Carbon\Carbon::today())->addDay()->format('Y-m-d')), [
+                            {!! Form::text('departure_date', @format_date($top_default_departure_date), [
                                 'class' => 'form-control departure_date',
                                 'placeholder' => __('hms::lang.departure_date'),
                                 'readonly',
@@ -232,8 +239,11 @@
                             </div>
                         </div>
                         @php
-                            $default_arrival_date = request()->input('booking_date') ? request()->input('booking_date') : \Carbon\Carbon::today()->format('Y-m-d');
-                            $default_departure_date = \Carbon\Carbon::parse($default_arrival_date)->addDay()->format('Y-m-d');
+                            $business_tz = session('business.time_zone') ?? (auth()->check() ? optional(auth()->user()->business)->time_zone : null) ?? config('app.timezone');
+                            $default_arrival_date = request()->input('booking_date') 
+                                ? request()->input('booking_date') 
+                                : \Carbon\Carbon::now($business_tz)->format('Y-m-d');
+                            $default_departure_date = \Carbon\Carbon::parse($default_arrival_date, $business_tz)->addDay()->format('Y-m-d');
                         @endphp
                         <div class="col-md-6">
                             <div class="form-group">
@@ -733,13 +743,21 @@
             });
 
             var bookingDate = "{{ request()->input('booking_date') }}";
-            var arrivalMoment = bookingDate ? moment(bookingDate) : moment();
-            var departureMoment = arrivalMoment.clone().add(1, 'days');
+            var initialArrivalVal = $('#arrival_date').val();
+            var arrivalMoment = (initialArrivalVal && moment(initialArrivalVal, moment_date_format, true).isValid())
+                ? moment(initialArrivalVal, moment_date_format, true)
+                : (bookingDate ? moment(bookingDate) : moment());
+
+            var initialDepartureVal = $('#departure_date').val();
+            var departureMoment = (initialDepartureVal && moment(initialDepartureVal, moment_date_format, true).isValid())
+                ? moment(initialDepartureVal, moment_date_format, true)
+                : arrivalMoment.clone().add(1, 'days');
 
             $('.date_picker').datetimepicker({
                 format: moment_date_format,
                 ignoreReadonly: true,
-                defaultDate: arrivalMoment
+                defaultDate: arrivalMoment,
+                useCurrent: false
             });
 
             $('.departure_date').datetimepicker({
@@ -747,6 +765,7 @@
                 ignoreReadonly: true,
                 defaultDate: departureMoment,
                 minDate: arrivalMoment,
+                useCurrent: false
             });
 
             var initialDate;

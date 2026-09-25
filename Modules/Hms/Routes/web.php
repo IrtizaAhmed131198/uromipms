@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 
-Route::middleware('web', 'auth', 'language', 'AdminSidebarMenu')->prefix('hms')->group(function () {
+Route::middleware(['web', 'SetSessionData', 'auth', 'language', 'timezone', 'AdminSidebarMenu'])->prefix('hms')->group(function () {
     Route::get('dashboard', [Modules\Hms\Http\Controllers\HmsController::class, 'index']);
     Route::resource('/rooms', Modules\Hms\Http\Controllers\RoomController::class);
     Route::resource('/buildings', Modules\Hms\Http\Controllers\HmsBuildingController::class)->names('hms.buildings');
