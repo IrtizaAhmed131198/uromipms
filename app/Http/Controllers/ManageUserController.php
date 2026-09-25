@@ -354,7 +354,7 @@ class ManageUserController extends Controller
                 }
 
                 $username_ext = $this->moduleUtil->getUsernameExtension();
-                if (! empty($username_ext)) {
+                if (! empty($username_ext) && ! \Illuminate\Support\Str::endsWith($user_data['username'], $username_ext)) {
                     $user_data['username'] .= $username_ext;
                 }
             }

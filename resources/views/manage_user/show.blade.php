@@ -51,6 +51,12 @@
                                 <span class="badge pull-right" style="background:#10b981; font-size:12px; letter-spacing:0.5px; padding:4px 8px; border-radius:4px; font-weight:bold;">{{ $user->referral_code ?? '—' }}</span>
                             </li>
                             <li class="list-group-item">
+                                <b>Total Bonus Earned</b>
+                                <span class="pull-right">
+                                    <strong class="display_currency text-success" data-currency_symbol="true" style="font-size:14px; font-weight:bold;">{{ $referral_metrics->grand_total_bonus ?? 0 }}</strong>
+                                </span>
+                            </li>
+                            <li class="list-group-item">
                                 <b>{{ __('lang_v1.status_for_user') }}</b>
                                 @if($user->status == 'active')
                                     <span class="label label-success pull-right">
@@ -100,6 +106,9 @@
                                 <div class="col-md-12">
                                     <div class="col-md-6">
                                             <p><strong>@lang( 'lang_v1.cmmsn_percent' ): </strong> {{$user->cmmsn_percent}}%</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                            <p><strong>Staff Referral Bonus Earned: </strong> <strong class="display_currency text-success" data-currency_symbol="true">{{ $referral_metrics->grand_total_bonus ?? 0 }}</strong></p>
                                     </div>
                                     <div class="col-md-6">
                                         @php

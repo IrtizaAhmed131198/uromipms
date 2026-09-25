@@ -74,6 +74,20 @@
 							<b>@lang('lang_v1.warranty'): </b>
 							{{$product->warranty->display_name }}
 						@endif
+
+						<br>
+						<b>Staff Referral Bonus: </b>
+						@if(!empty($product->referral_commission_amount) && (float)$product->referral_commission_amount > 0)
+							<span class="badge" style="background:#10b981; font-size:12px;">
+								@if($product->referral_commission_type == 'fixed')
+									@format_currency($product->referral_commission_amount) (Fixed)
+								@else
+									{{ @num_format($product->referral_commission_amount) }}% (Percentage)
+								@endif
+							</span>
+						@else
+							<span class="text-muted">None</span>
+						@endif
 	      			</div>
 					
 	      			<div class="col-sm-4 invoice-col">

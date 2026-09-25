@@ -1580,7 +1580,7 @@ class ProductController extends Controller
         try {
             $business_id = $request->session()->get('user.business_id');
             $form_fields = ['name', 'brand_id', 'unit_id', 'category_id', 'tax', 'barcode_type', 'tax_type', 'sku',
-                'alert_quantity', 'type', 'sub_unit_ids', 'sub_category_id', 'weight', 'product_description', 'product_custom_field1', 'product_custom_field2', 'product_custom_field3', 'product_custom_field4', 'product_custom_field5', 'product_custom_field6', 'product_custom_field7', 'product_custom_field8', 'product_custom_field9', 'product_custom_field10', 'product_custom_field11', 'product_custom_field12', 'product_custom_field13', 'product_custom_field14', 'product_custom_field15', 'product_custom_field16', 'product_custom_field17', 'product_custom_field18', 'product_custom_field19', 'product_custom_field20'];
+                'alert_quantity', 'type', 'sub_unit_ids', 'sub_category_id', 'weight', 'product_description', 'referral_commission_type', 'referral_commission_amount', 'product_custom_field1', 'product_custom_field2', 'product_custom_field3', 'product_custom_field4', 'product_custom_field5', 'product_custom_field6', 'product_custom_field7', 'product_custom_field8', 'product_custom_field9', 'product_custom_field10', 'product_custom_field11', 'product_custom_field12', 'product_custom_field13', 'product_custom_field14', 'product_custom_field15', 'product_custom_field16', 'product_custom_field17', 'product_custom_field18', 'product_custom_field19', 'product_custom_field20'];
 
             $module_form_fields = $this->moduleUtil->getModuleData('product_form_fields');
             if (!empty($module_form_fields)) {
@@ -1591,6 +1591,9 @@ class ProductController extends Controller
                 }
             }
             $product_details = $request->only($form_fields);
+
+            $product_details['referral_commission_type'] = !empty($request->input('referral_commission_type')) ? $request->input('referral_commission_type') : 'percentage';
+            $product_details['referral_commission_amount'] = !empty($request->input('referral_commission_amount')) ? $this->productUtil->num_uf($request->input('referral_commission_amount')) : 0;
 
             $product_details['type'] = empty($product_details['type']) ? 'single' : $product_details['type'];
             $product_details['business_id'] = $business_id;

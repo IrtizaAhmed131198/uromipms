@@ -24,7 +24,7 @@
         </tr>
         @foreach($product_deatails->variations as $variation )
             @php
-                $is_image_required = !empty($common_settings['is_product_image_required']) && count($variation->media) == 0;
+                $is_image_required = false;
             @endphp
             @if($loop->first)
                 <tr>
@@ -70,7 +70,7 @@
                         <div class="form-group">
                             {!! Form::label('variation_images', __('lang_v1.product_image') . ':') !!}
                             {!! Form::file('variation_images[]', ['class' => 'variation_images', 
-                                'accept' => 'image/*', 'multiple', 'required' => $is_image_required]); !!}
+                                'accept' => 'image/*', 'multiple']); !!}
                             <small><p class="help-block">@lang('purchase.max_file_size', ['size' => (config('constants.document_size_limit') / 1000000)]) <br> @lang('lang_v1.aspect_ratio_should_be_1_1')</p></small>
                         </div>
                     </td>

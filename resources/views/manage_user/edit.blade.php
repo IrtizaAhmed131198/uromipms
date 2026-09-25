@@ -308,8 +308,9 @@
                                     return $( "#username" ).val();
                                 },
                                 @if(!empty($username_ext))
-                                  username_ext: "{{$username_ext}}"
+                                  username_ext: "{{$username_ext}}",
                                 @endif
+                                user_id: {{$user->id}}
                             }
                         }
                     }

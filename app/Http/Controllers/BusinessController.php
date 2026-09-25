@@ -253,11 +253,17 @@ class BusinessController extends Controller
     {
         $username = $request->input('username');
 
-        if (! empty($request->input('username_ext'))) {
+        if (! empty($request->input('username_ext')) && ! \Illuminate\Support\Str::endsWith($username, $request->input('username_ext'))) {
             $username .= $request->input('username_ext');
         }
 
-        $count = User::where('username', $username)->count();
+        $query = User::where('username', $username);
+
+        if (! empty($request->input('user_id'))) {
+            $query->where('id', '!=', $request->input('user_id'));
+        }
+
+        $count = $query->count();
 
         if ($count == 0) {
             echo 'true';

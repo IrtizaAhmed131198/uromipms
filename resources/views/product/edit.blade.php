@@ -4,7 +4,7 @@
 @section('content')
 
 @php
-  $is_image_required = !empty($common_settings['is_product_image_required']) && empty($product->image);
+  $is_image_required = false;
 @endphp
 
 <!-- Content Header (Page header) -->
@@ -155,13 +155,13 @@
               </div>
             </div>
             @endif
-            <div class="col-sm-4">
+            <div class="col-sm-4 col-xs-12">
               <div class="form-group">
                 {!! Form::label('referral_commission_type', 'Staff Referral Bonus Type:') !!}
                 {!! Form::select('referral_commission_type', ['percentage' => 'Percentage (%)', 'fixed' => 'Fixed Amount'], $product->referral_commission_type ?? 'percentage', ['class' => 'form-control select2']); !!}
               </div>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-4 col-xs-12">
               <div class="form-group">
                 {!! Form::label('referral_commission_amount', 'Staff Referral Bonus / Commission:') !!} @show_tooltip('Bonus or commission given to referring staff member when this specific product is sold.')
                 {!! Form::text('referral_commission_amount', @num_format($product->referral_commission_amount ?? 0), ['class' => 'form-control input_number', 'placeholder' => '0.00']); !!}
@@ -185,7 +185,7 @@
             <div class="col-sm-4">
               <div class="form-group">
                 {!! Form::label('image', __('lang_v1.product_image') . ':') !!}
-                {!! Form::file('image', array_merge(['id' => 'upload_image', 'accept' => 'image/*'], $is_image_required ? ['required' => 'required'] : [])); !!}
+                {!! Form::file('image', ['id' => 'upload_image', 'accept' => 'image/*']); !!}
                 <small><p class="help-block">@lang('purchase.max_file_size', ['size' => (config('constants.document_size_limit') / 1000000)]). @lang('lang_v1.aspect_ratio_should_be_1_1') @if(!empty($product->image)) <br> @lang('lang_v1.previous_image_will_be_replaced') @endif</p></small>
               </div>
             </div>
