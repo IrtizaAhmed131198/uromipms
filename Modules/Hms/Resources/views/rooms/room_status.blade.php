@@ -83,19 +83,26 @@
                     @if(!$is_available)
                     <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 4px 0;">
                         Arrival : <strong style="color:#fff;">
-                            {{ $room->arrival_at ? \Carbon\Carbon::parse($room->arrival_at)->format('d M Y, H:i') : 'N/A' }}
+                            {{ $room->arrival_formatted ?? 'N/A' }}
                         </strong>
                     </p>
-                    <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 8px 0;">
-                        Check Out : <strong style="color:#fff;">
-                            {{ $room->checkout_at ? \Carbon\Carbon::parse($room->checkout_at)->format('d M Y, H:i') : 'None' }}
+                    <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 4px 0;">
+                        Departure : <strong style="color:#fff;">
+                            {{ $room->departure_formatted ?? 'None' }}
                         </strong>
                     </p>
+                    @if(!empty($room->actual_check_in))
+                    <p style="font-size:11px;color:rgba(255,255,255,0.85);margin:0 0 6px 0;">
+                        Checked In : <strong style="color:#fff;">{{ $room->actual_check_in }}</strong>
+                    </p>
+                    @endif
 
-                    @if($room->arrival_at && $room->checkout_at)
+                    @if($room->arrival_at && $room->departure_at)
                         <div class="room-timer"
                             data-arrival="{{ $room->arrival_at }}"
-                            data-departure="{{ $room->checkout_at }}"
+                            data-departure="{{ $room->departure_at }}"
+                            data-checked-in="{{ $room->is_checked_in ? 1 : 0 }}"
+                            data-server-time="{{ \Carbon\Carbon::now()->toIso8601String() }}"
                             style="font-size:17px;font-weight:800;color:#00e5ff;margin-bottom:12px;">
                             {{ $room->time_left_human ?? '—' }}
                         </div>
@@ -104,7 +111,7 @@
                     @endif
                     @else
                     <p style="font-size:12px;color:rgba(255,255,255,0.85);margin:0 0 8px 0;">
-                        Check Out : <strong style="color:#fff;">None</strong>
+                        Status : <strong style="color:#fff;">Ready for Guest</strong>
                     </p>
                     <div style="font-size:19px;font-weight:800;color:#00e5ff;margin-bottom:12px;">—</div>
                     @endif
@@ -154,7 +161,7 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     function formatDiff(ms) {
-        if (ms <= 0) return 'Expired';
+        if (ms <= 0) return '0s';
         const total = Math.floor(ms / 1000);
         const days  = Math.floor(total / 86400);
         const hrs   = Math.floor((total % 86400) / 3600);
@@ -169,11 +176,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const timers = document.querySelectorAll('.room-timer[data-arrival][data-departure]');
     if (!timers.length) return;
 
+    // Calculate time offset between server and client device clock
+    let timeOffset = 0;
+    const firstTimer = timers[0];
+    const serverTimeStr = firstTimer ? firstTimer.getAttribute('data-server-time') : null;
+    if (serverTimeStr) {
+        const serverTime = new Date(serverTimeStr);
+        if (!isNaN(serverTime.getTime())) {
+            timeOffset = serverTime.getTime() - Date.now();
+        }
+    }
+
     function tick() {
-        const now = new Date();
+        const now = new Date(Date.now() + timeOffset);
         timers.forEach(function (el) {
             const arr = el.getAttribute('data-arrival');
             const dep = el.getAttribute('data-departure');
+            const isCheckedIn = el.getAttribute('data-checked-in') === '1';
 
             if (!arr || !dep || arr === 'null' || dep === 'null') {
                 el.textContent = '—';
@@ -183,21 +202,33 @@ document.addEventListener('DOMContentLoaded', function () {
             const arrivalTime   = new Date(arr);
             const departureTime = new Date(dep);
 
-            if (isNaN(arrivalTime) || isNaN(departureTime)) {
+            if (isNaN(arrivalTime.getTime()) || isNaN(departureTime.getTime())) {
                 el.textContent = '—';
                 return;
             }
 
-            // Before arrival: show "Starts in X"
-            if (now < arrivalTime) {
-                el.style.color = '#ffd700';
-                el.textContent = 'Starts in ' + formatDiff(arrivalTime - now);
-                return;
+            if (isCheckedIn) {
+                // Occupied / Checked-in: countdown to departure
+                if (now < departureTime) {
+                    el.style.color = '#00e5ff';
+                    el.textContent = formatDiff(departureTime - now);
+                } else {
+                    el.style.color = '#ff6b6b';
+                    el.textContent = 'Overdue (' + formatDiff(now - departureTime) + ' ago)';
+                }
+            } else {
+                // Booked but not checked in yet
+                if (now < arrivalTime) {
+                    el.style.color = '#ffd700';
+                    el.textContent = 'Starts in ' + formatDiff(arrivalTime - now);
+                } else if (now < departureTime) {
+                    el.style.color = '#ffa500';
+                    el.textContent = 'Awaiting Check-in';
+                } else {
+                    el.style.color = '#ff6b6b';
+                    el.textContent = 'Booking Expired';
+                }
             }
-
-            // After arrival, before departure: countdown to checkout
-            el.style.color = '#00e5ff';
-            el.textContent = formatDiff(departureTime - now);
         });
     }
 

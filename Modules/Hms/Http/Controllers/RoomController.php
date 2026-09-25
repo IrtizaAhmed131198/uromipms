@@ -23,10 +23,12 @@ use Yajra\DataTables\Facades\DataTables;
 class RoomController extends Controller
 {
     protected $moduleUtil;
+    protected $commonUtil;
 
-    public function __construct(ModuleUtil $moduleUtil)
+    public function __construct(ModuleUtil $moduleUtil, \App\Utils\Util $commonUtil)
     {
         $this->moduleUtil = $moduleUtil;
+        $this->commonUtil = $commonUtil;
     }
 
     /**
@@ -141,26 +143,36 @@ class RoomController extends Controller
                     $is_checked_in = !empty($booking->check_in) && empty($booking->check_out);
                     $room->is_checked_in = $is_checked_in ? 1 : 0;
 
+                    $raw_arrival = $booking->hms_booking_arrival_date_time ?? null;
+                    $arrival = $raw_arrival ? Carbon::parse($raw_arrival) : null;
+
                     $raw_departure = $booking->hms_booking_departure_date_time ?? null;
                     $departure = $raw_departure ? Carbon::parse($raw_departure) : null;
 
-                    // Timer only runs after check-in. For booked-but-not-checked-in rooms,
-                    // pass null so the JS countdown never starts.
-                    if ($is_checked_in) {
-                        $raw_check_in = $booking->check_in ?? null;
-                        $check_in = $raw_check_in ? Carbon::parse($raw_check_in) : null;
-                        $room->arrival_at  = $check_in  ? $check_in->format('Y-m-d\TH:i:s')  : null;
-                        $room->checkout_at = $departure ? $departure->format('Y-m-d\TH:i:s') : null;
-                    } else {
-                        $room->arrival_at  = null;
-                        $room->checkout_at = null;
-                    }
-                    $room->time_left_human = $departure && $departure->isFuture()
-                        ? $departure->diffForHumans()
+                    $raw_check_in = $booking->check_in ?? null;
+                    $check_in = $raw_check_in ? Carbon::parse($raw_check_in) : null;
+
+                    // ISO strings with timezone for JS timer
+                    $room->arrival_at = $arrival ? $arrival->toIso8601String() : null;
+                    $room->departure_at = $departure ? $departure->toIso8601String() : null;
+                    $room->checkout_at = $room->departure_at;
+
+                    // Formatted dates using business settings
+                    $room->arrival_formatted = $raw_arrival ? $this->commonUtil->format_date($raw_arrival, true) : null;
+                    $room->departure_formatted = $raw_departure ? $this->commonUtil->format_date($raw_departure, true) : null;
+                    $room->actual_check_in = $raw_check_in ? $this->commonUtil->format_date($raw_check_in, true) : null;
+
+                    $target = $is_checked_in ? $departure : $arrival;
+                    $room->time_left_human = $target && $target->isFuture()
+                        ? $target->diffForHumans()
                         : null;
                 } else {
-                    $room->arrival_at   = null;
-                    $room->checkout_at  = null;
+                    $room->arrival_at = null;
+                    $room->departure_at = null;
+                    $room->checkout_at = null;
+                    $room->arrival_formatted = null;
+                    $room->departure_formatted = null;
+                    $room->actual_check_in = null;
                     $room->time_left_human = null;
                     $room->is_checked_in = 0;
                 }

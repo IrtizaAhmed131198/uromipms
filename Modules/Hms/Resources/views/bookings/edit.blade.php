@@ -95,7 +95,13 @@
                             'id' => 'departure_date',
                         ]) !!}
                     </div>
-                    <p class="days_count text-success">1 Days</p>
+                    @php
+                        $e_start = \Carbon\Carbon::parse($transaction->hms_booking_arrival_date_time);
+                        $e_end = \Carbon\Carbon::parse($transaction->hms_booking_departure_date_time);
+                        $e_diff_days = $e_end->diffInDays($e_start);
+                        if ($e_diff_days <= 0) { $e_diff_days = 1; }
+                    @endphp
+                    <p class="days_count text-success">{{ $e_diff_days }} {{ $e_diff_days > 1 ? 'Days' : 'Day' }}</p>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">

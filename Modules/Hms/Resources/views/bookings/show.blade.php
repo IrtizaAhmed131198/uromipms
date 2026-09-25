@@ -92,7 +92,13 @@
                         {!! Form::label('departure_date', __('hms::lang.departure_date') . ':') !!}
                         {{ @format_date($transaction->hms_booking_departure_date_time) }}
                     </div>
-                    <div class="days_count"></div>
+                    @php
+                        $c_start = \Carbon\Carbon::parse($transaction->hms_booking_arrival_date_time);
+                        $c_end = \Carbon\Carbon::parse($transaction->hms_booking_departure_date_time);
+                        $c_diff_days = $c_end->diffInDays($c_start);
+                        if ($c_diff_days <= 0) { $c_diff_days = 1; }
+                    @endphp
+                    <div class="days_count"><strong class="text-success">{{ $c_diff_days }} {{ $c_diff_days > 1 ? 'Days' : 'Day' }} ({{ $c_diff_days }} {{ $c_diff_days > 1 ? 'Nights' : 'Night' }})</strong></div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">

@@ -317,13 +317,18 @@
                     });
                 });
                 $(".check_in_out").on("show.bs.modal", function() {
-                    var currentDate = new Date();
-                    var currentDateTime = moment(currentDate);
+                    var $dp = $(this).find('.date_picker');
+                    var initVal = $dp.val();
+                    var defaultDate = initVal ? moment(initVal, moment_date_format + ' ' + moment_time_format) : moment();
+                    if (!defaultDate || !defaultDate.isValid()) {
+                        defaultDate = moment();
+                    }
 
-                    $('.date_picker').datetimepicker({
+                    $dp.datetimepicker({
                         format: moment_date_format + ' ' + moment_time_format,
                         ignoreReadonly: true,
-                        defaultDate: currentDateTime
+                        defaultDate: defaultDate,
+                        useCurrent: false
                     });
                 });
 
