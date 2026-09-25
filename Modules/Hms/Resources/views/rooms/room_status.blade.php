@@ -83,7 +83,7 @@
                     @if(!$is_available)
                     <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 4px 0;">
                         Arrival : <strong style="color:#fff;">
-                            {{ $room->arrival_formatted ?? 'N/A' }}
+                            {{ !empty($room->arrival_formatted) && trim($room->arrival_formatted) !== '' ? $room->arrival_formatted : (!empty($room->arrival_at) ? @format_datetime($room->arrival_at) : 'N/A') }}
                         </strong>
                     </p>
                     @if(!empty($room->actual_check_in))
@@ -93,7 +93,7 @@
                     @endif
                     <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 6px 0;">
                         Departure : <strong style="color:#fff;">
-                            {{ $room->departure_formatted ?? 'None' }}
+                            {{ !empty($room->departure_formatted) && trim($room->departure_formatted) !== '' ? $room->departure_formatted : (!empty($room->departure_at) ? @format_datetime($room->departure_at) : 'None') }}
                         </strong>
                     </p>
 

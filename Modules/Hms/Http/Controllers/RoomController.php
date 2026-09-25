@@ -113,6 +113,8 @@ class RoomController extends Controller
                 'hms_booking_lines.hms_room_id',
                 'transactions.hms_booking_arrival_date_time',
                 'transactions.hms_booking_departure_date_time',
+                'transactions.transaction_date',
+                'transactions.created_at',
                 'transactions.check_in',
                 'transactions.check_out'
             )
@@ -143,10 +145,14 @@ class RoomController extends Controller
                     $is_checked_in = !empty($booking->check_in) && empty($booking->check_out);
                     $room->is_checked_in = $is_checked_in ? 1 : 0;
 
-                    $raw_arrival = $booking->hms_booking_arrival_date_time ?? null;
+                    $raw_arrival = !empty($booking->hms_booking_arrival_date_time)
+                        ? $booking->hms_booking_arrival_date_time
+                        : (!empty($booking->check_in) ? $booking->check_in : ($booking->transaction_date ?? $booking->created_at ?? null));
                     $arrival = $raw_arrival ? Carbon::parse($raw_arrival) : null;
 
-                    $raw_departure = $booking->hms_booking_departure_date_time ?? null;
+                    $raw_departure = !empty($booking->hms_booking_departure_date_time)
+                        ? $booking->hms_booking_departure_date_time
+                        : ($arrival ? $arrival->copy()->addDay() : null);
                     $departure = $raw_departure ? Carbon::parse($raw_departure) : null;
 
                     $raw_check_in = $booking->check_in ?? null;
@@ -157,10 +163,10 @@ class RoomController extends Controller
                     $room->departure_at = $departure ? $departure->toIso8601String() : null;
                     $room->checkout_at = $room->departure_at;
 
-                    // Formatted dates using business settings
-                    $room->arrival_formatted = $raw_arrival ? $this->commonUtil->format_date($raw_arrival, true) : null;
-                    $room->departure_formatted = $raw_departure ? $this->commonUtil->format_date($raw_departure, true) : null;
-                    $room->actual_check_in = $raw_check_in ? $this->commonUtil->format_date($raw_check_in, true) : null;
+                    // Formatted dates using business settings with Carbon fallback
+                    $room->arrival_formatted = $raw_arrival ? ($this->commonUtil->format_date($raw_arrival, true) ?: Carbon::parse($raw_arrival)->format('d-m-Y H:i')) : null;
+                    $room->departure_formatted = $raw_departure ? ($this->commonUtil->format_date($raw_departure, true) ?: Carbon::parse($raw_departure)->format('d-m-Y H:i')) : null;
+                    $room->actual_check_in = $raw_check_in ? ($this->commonUtil->format_date($raw_check_in, true) ?: Carbon::parse($raw_check_in)->format('d-m-Y H:i')) : null;
 
                     $target = $is_checked_in ? $departure : $arrival;
                     $room->time_left_human = $target && $target->isFuture()
