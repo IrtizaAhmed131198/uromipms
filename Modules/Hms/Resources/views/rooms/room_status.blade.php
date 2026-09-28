@@ -14,9 +14,9 @@
 
     @component('components.widget', ['class' => 'box-primary', 'title' => 'All Rooms'])
 
-    <div style="display:flex; flex-wrap:wrap; margin: 0 -8px;">
+    <div class="room-grid">
         @forelse($rooms as $room)
-        <div style="width:25%; padding: 0 8px 16px 8px; box-sizing:border-box;">
+        <div class="room-col">
 
             {{--
                 CASE 1: Occupied  (checked_in=1, check_out=null) → RED
@@ -25,74 +25,54 @@
             --}}
 
             @php
-                $is_occupied  = !empty($room->is_booked) && !empty($room->is_checked_in);
+                $is_occupied    = !empty($room->is_booked) && !empty($room->is_checked_in);
                 $is_booked_only = !empty($room->is_booked) && empty($room->is_checked_in);
-                $is_available = empty($room->is_booked);
+                $is_available   = empty($room->is_booked);
 
                 if ($is_occupied) {
-                    $overlay_color = 'rgba(160, 20, 20, 0.78)';   // red
-                    $status_label  = 'Occupied';
-                    $badge_bg      = '#c0392b';
+                    $status_class = 'is-occupied';
+                    $status_label = 'Occupied';
                 } elseif ($is_booked_only) {
-                    $overlay_color = 'rgba(160, 110, 0, 0.78)';   // yellow/amber
-                    $status_label  = 'Booked';
-                    $badge_bg      = '#e6a817';
+                    $status_class = 'is-booked';
+                    $status_label = 'Booked';
                 } else {
-                    $overlay_color = 'rgba(20, 110, 40, 0.72)';   // green
-                    $status_label  = 'Available';
-                    $badge_bg      = '#27ae60';
+                    $status_class = 'is-available';
+                    $status_label = 'Available';
                 }
             @endphp
 
-            <div style="
-                position: relative;
-                border-radius: 10px;
-                overflow: hidden;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-                min-height: 270px;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            ">
+            <div class="room-card {{ $status_class }}">
                 {{-- BG Image --}}
-                <img src="{{ $room->image_url }}"
-                    style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;"
-                    alt="Room image">
+                <img src="{{ $room->image_url }}" class="room-card-img" alt="Room image">
 
                 {{-- Colored overlay --}}
-                <div style="
-                    position:absolute;
-                    top: 10px; left: 10px; right: 10px; bottom: 10px;
-                    background: {{ $overlay_color }};
-                    border-radius: 6px;
-                    z-index:1;
-                "></div>
+                <div class="room-card-overlay"></div>
 
-                <div style="position:relative;z-index:2;padding:20px 14px 16px 14px;text-align:center;color:#fff;width:100%;">
-                    <p style="font-size:11px;font-weight:500;color:rgba(255,255,255,0.80);margin:0 0 0 0;letter-spacing:1px;">Floor Name</p>
-                    <h4 style="font-size:15px;font-weight:800;color:#fff;margin:0 0 8px 0;letter-spacing:0.5px;">
+                <div class="room-card-body">
+                    <p class="room-floor-label">Floor Name</p>
+                    <h4 class="room-floor-name">
                         {{ strtoupper($room->floor_name === null ? 'GROUND' : $room->floor_name) }}
                     </h4>
-                    <h3 style="font-size:19px;font-weight:800;color:#fff;margin:0 0 8px 0;">
+                    <h3 class="room-number">
                         Room No. {{ $room->room_number ?? $room->id }}
                     </h3>
-                    <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 2px 0;">
-                        Room Type : <strong style="color:#fff;">{{ $room->room_type ?? 'Standard' }}</strong>
+                    <p class="room-info-item">
+                        Room Type : <strong>{{ $room->room_type ?? 'Standard' }}</strong>
                     </p>
 
                     @if(!$is_available)
-                    <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 4px 0;">
-                        Arrival : <strong style="color:#fff;">
+                    <p class="room-info-item">
+                        Arrival : <strong>
                             {{ !empty($room->arrival_formatted) && trim($room->arrival_formatted) !== '' ? $room->arrival_formatted : (!empty($room->arrival_at) ? @format_datetime($room->arrival_at) : 'N/A') }}
                         </strong>
                     </p>
                     @if(!empty($room->actual_check_in))
-                    <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 4px 0;">
-                        Checked In : <strong style="color:#fff;">{{ $room->actual_check_in }}</strong>
+                    <p class="room-info-item">
+                        Checked In : <strong>{{ $room->actual_check_in }}</strong>
                     </p>
                     @endif
-                    <p style="font-size:12px;color:rgba(255,255,255,0.90);margin:0 0 6px 0;">
-                        Departure : <strong style="color:#fff;">
+                    <p class="room-info-item room-info-departure">
+                        Departure : <strong>
                             {{ !empty($room->departure_formatted) && trim($room->departure_formatted) !== '' ? $room->departure_formatted : (!empty($room->departure_at) ? @format_datetime($room->departure_at) : 'None') }}
                         </strong>
                     </p>
@@ -102,29 +82,27 @@
                             data-arrival="{{ $room->arrival_at }}"
                             data-departure="{{ $room->departure_at }}"
                             data-checked-in="{{ $room->is_checked_in ? 1 : 0 }}"
-                            data-server-time="{{ \Carbon\Carbon::now()->toIso8601String() }}"
-                            style="font-size:17px;font-weight:800;color:#00e5ff;margin-bottom:12px;">
+                            data-server-time="{{ \Carbon\Carbon::now()->toIso8601String() }}">
                             {{ $room->time_left_human ?? '—' }}
                         </div>
                     @else
-                        <div style="font-size:17px;font-weight:800;color:#00e5ff;margin-bottom:12px;">—</div>
+                        <div class="room-timer-empty">—</div>
                     @endif
                     @else
-                    <p style="font-size:12px;color:rgba(255,255,255,0.85);margin:0 0 8px 0;">
-                        Status : <strong style="color:#fff;">Ready for Guest</strong>
+                    <p class="room-info-item room-info-status">
+                        Status : <strong>Ready for Guest</strong>
                     </p>
-                    <div style="font-size:19px;font-weight:800;color:#00e5ff;margin-bottom:12px;">—</div>
+                    <div class="room-timer-empty">—</div>
                     @endif
 
-                    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-                        <button style="padding:9px 14px;background:{{ $badge_bg }};color:#fff;font-weight:700;font-size:13px;border:none;border-radius:5px;letter-spacing:0.8px;cursor:default;">
+                    <div class="room-actions">
+                        <button type="button" class="btn-room-status">
                             {{ $status_label }}
                         </button>
                         @if(!empty($room->booking_id))
                         <a href="{{ route('hms.booking.receipt', ['id' => $room->booking_id]) }}"
-                           class="js-generate-receipt"
-                           data-id="{{ $room->booking_id }}"
-                           style="padding:9px 14px;background:#e6a817;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:5px;letter-spacing:0.8px;text-decoration:none;display:inline-block;">
+                           class="js-generate-receipt btn-generate-receipt"
+                           data-id="{{ $room->booking_id }}">
                             Generate Receipt
                         </a>
                         @endif
@@ -134,7 +112,7 @@
 
         </div>
         @empty
-        <div style="width:100%;padding:0 8px;">
+        <div class="room-empty-col">
             <div class="alert alert-info">No rooms found for this business.</div>
         </div>
         @endforelse
@@ -147,11 +125,193 @@
 
 @section('css')
 <style>
-@media (max-width: 992px) {
-    .room-col { width: 50% !important; }
+/* Room Grid & Layout */
+.room-grid {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -8px;
 }
+
+.room-col {
+    width: 25%;
+    padding: 0 8px 16px 8px;
+    box-sizing: border-box;
+}
+
+.room-empty-col {
+    width: 100%;
+    padding: 0 8px;
+}
+
+/* Room Card */
+.room-card {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    min-height: 270px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.room-card-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
+/* Colored Overlays by Status */
+.room-card-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border-radius: 6px;
+    z-index: 1;
+}
+
+.room-card.is-occupied .room-card-overlay {
+    background: rgba(160, 20, 20, 0.78);
+}
+
+.room-card.is-booked .room-card-overlay {
+    background: rgba(160, 110, 0, 0.78);
+}
+
+.room-card.is-available .room-card-overlay {
+    background: rgba(20, 110, 40, 0.72);
+}
+
+/* Card Body & Typography */
+.room-card-body {
+    position: relative;
+    z-index: 2;
+    padding: 20px 14px 16px 14px;
+    text-align: center;
+    color: #fff;
+    width: 100%;
+}
+
+.room-floor-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.80);
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.room-floor-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 8px 0;
+    letter-spacing: 0.5px;
+}
+
+.room-number {
+    font-size: 19px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 8px 0;
+}
+
+.room-info-item {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.90);
+    margin: 0 0 4px 0;
+}
+
+.room-info-item strong {
+    color: #fff;
+}
+
+.room-info-departure {
+    margin-bottom: 6px;
+}
+
+.room-info-status {
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 8px;
+}
+
+/* Countdown Timer */
+.room-timer,
+.room-timer-empty {
+    font-size: 17px;
+    font-weight: 800;
+    color: #00e5ff;
+    margin-bottom: 12px;
+}
+
+/* Actions & Buttons */
+.room-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-room-status {
+    padding: 9px 14px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    border-radius: 5px;
+    letter-spacing: 0.8px;
+    cursor: default;
+}
+
+.room-card.is-occupied .btn-room-status {
+    background: #c0392b;
+}
+
+.room-card.is-booked .btn-room-status {
+    background: #e6a817;
+}
+
+.room-card.is-available .btn-room-status {
+    background: #27ae60;
+}
+
+.btn-generate-receipt {
+    padding: 9px 14px;
+    background: #e6a817;
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    border-radius: 5px;
+    letter-spacing: 0.8px;
+    text-decoration: none;
+    display: inline-block;
+    transition: opacity 0.2s ease;
+}
+
+.btn-generate-receipt:hover,
+.btn-generate-receipt:focus {
+    color: #fff;
+    opacity: 0.9;
+    text-decoration: none;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 992px) {
+    .room-col {
+        width: 50% !important;
+    }
+}
+
 @media (max-width: 576px) {
-    .room-col { width: 100% !important; }
+    .room-col {
+        width: 100% !important;
+    }
 }
 </style>
 @endsection
